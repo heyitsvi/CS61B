@@ -1,11 +1,12 @@
 package game2048;
 
+import java.sql.SQLOutput;
 import java.util.Formatter;
 import java.util.Observable;
 
 
 /** The state of a game of 2048.
- *  @author TODO: YOUR NAME HERE
+ *  @author Vivek Singh
  */
 public class Model extends Observable {
     /** Current contents of the board. */
@@ -137,7 +138,13 @@ public class Model extends Observable {
      *  Empty spaces are stored as null.
      * */
     public static boolean emptySpaceExists(Board b) {
-        // TODO: Fill in this function.
+        for (int col = 0; col < b.size(); col++){
+            for (int row = 0; row < b.size(); row++){
+                if (b.tile(col, row) == null){
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -147,7 +154,20 @@ public class Model extends Observable {
      * given a Tile object t, we get its value with t.value().
      */
     public static boolean maxTileExists(Board b) {
-        // TODO: Fill in this function.
+        for (int col = 0; col < b.size(); col++){
+            for (int row = 0; row < b.size(); row++){
+                int tileValue;
+                try{
+                    tileValue = b.tile(col, row).value();
+                }catch(NullPointerException e){
+                    tileValue = 0;
+                }
+                System.out.println(tileValue == MAX_PIECE);
+                if (tileValue == MAX_PIECE){
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -157,8 +177,36 @@ public class Model extends Observable {
      * 1. There is at least one empty space on the board.
      * 2. There are two adjacent tiles with the same value.
      */
+
+    public  static boolean checkAdjacentTileValues(Board b){
+        for (int col = 0; col < b.size(); col++){
+            for (int row = 0; row < (b.size() - 1); row++){
+                int firstValue = b.tile(col, row).value();
+                int secondValue = b.tile(col, row + 1).value();
+
+                if (firstValue == secondValue){
+                    return true;
+                }
+            }
+        }
+
+        for (int row = 0; row < b.size(); row++){
+            for (int col = 0; col < (b.size() - 1); col++){
+                int firstValue = b.tile(col, row).value();
+                int secondValue = b.tile(col + 1, row).value();
+
+                if (firstValue == secondValue){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
     public static boolean atLeastOneMoveExists(Board b) {
-        // TODO: Fill in this function.
+        if (emptySpaceExists(b) || checkAdjacentTileValues(b)){
+            return true;
+        }
+
         return false;
     }
 

@@ -104,7 +104,7 @@ public class Board implements Iterable<Tile> {
     }
 
     @Override
-    /** Returns the board as a string, used for debugging. */
+    /* Returns the board as a string, used for debugging. */
     public String toString() {
         Formatter out = new Formatter();
         out.format("%n[%n");
