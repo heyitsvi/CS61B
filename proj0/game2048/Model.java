@@ -107,6 +107,43 @@ public class Model extends Observable {
      *    value, then the leading two tiles in the direction of motion merge,
      *    and the trailing tile does not.
      * */
+
+    public boolean checkIfEmptyColumn(int c, int r){
+        for (int row = r + 1; row < board.size(); row++){
+            Tile t = board.tile(c, row);
+            if (t != null){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public int getFarthestEmptyTileIndexColumn(int c, int r, int[][] merged){
+        int index = r;
+        Tile tobeMoved = board.tile(c, r);
+
+        if (checkIfEmptyColumn(c, r)){
+            return board.size() - 1;
+        }else{
+            for (int row = r + 1; row < board.size(); row++){
+                Tile t = board.tile(c, row);
+                if (t != null){
+                    if (tobeMoved.value() == t.value() && merged[c][row] == 0){
+                        index = row;
+                        break;
+                    } else if (tobeMoved.value() != t.value()) {
+                        index = row - 1;
+                        break;
+                    } else if (tobeMoved.value() == t.value() && merged[c][row] == 1){
+                        index = row - 1;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return index;
+    }
     public boolean tilt(Side side) {
         boolean changed;
         changed = false;
@@ -114,6 +151,38 @@ public class Model extends Observable {
         // TODO: Modify this.board (and perhaps this.score) to account
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
+        int[][] merged = {
+            {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0}
+        };
+
+        if (side == Side.EAST){
+            board.setViewingPerspective(Side.EAST);
+        } else if (side == Side.SOUTH) {
+            board.setViewingPerspective(Side.SOUTH);
+        } else if (side == Side.WEST) {
+            board.setViewingPerspective(Side.WEST);
+        }
+
+        for(int c = 0; c < board.size(); c++){
+            for(int r = board.size() - 1;  r >= 0; r--){
+                Tile t = board.tile(c,r);
+                    if(board.tile(c,r) != null){
+                        int max_index = getFarthestEmptyTileIndexColumn(c,r,merged);
+                        //*System.out.println("Max Index " + max_index);*/
+                        boolean merge = board.move(c,max_index,t);
+
+                        if (merge){
+                            merged[c][max_index] = 1;
+                            score += board.tile(c,max_index).value();
+                        }
+                        changed = true;
+                    }
+            }
+        }
+        if (side == Side.EAST || side == Side.SOUTH || side == Side.WEST){
+            changed = true;
+            board.setViewingPerspective(Side.NORTH);
+        }
 
         checkGameOver();
         if (changed) {
@@ -162,7 +231,7 @@ public class Model extends Observable {
                 }catch(NullPointerException e){
                     tileValue = 0;
                 }
-                System.out.println(tileValue == MAX_PIECE);
+                //*System.out.println(tileValue == MAX_PIECE);*/
                 if (tileValue == MAX_PIECE){
                     return true;
                 }
