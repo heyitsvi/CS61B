@@ -60,6 +60,10 @@ public class ArrayDeque<Type> {
 
     public Type removeFirst(){
         //System.out.println(getUsageRatio());
+
+        if(isEmpty()){
+            return null;
+        }
         if (getUsageRatio() < 0.25 && items.length > 16){
             resize(items.length / 2);
         }
@@ -81,6 +85,9 @@ public class ArrayDeque<Type> {
     };
 
     public Type removeLast(){
+        if(isEmpty()){
+            return null;
+        }
         //System.out.println(getUsageRatio());
         if (getUsageRatio() < 0.25 && items.length > 16){
             resize(items.length / 2);
