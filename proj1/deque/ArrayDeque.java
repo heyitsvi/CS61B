@@ -15,18 +15,63 @@ public class ArrayDeque<Type> {
         nextLast = 0;
     }
 
-    /*public void resize(int capacity){
+    public void resize(int capacity){
+        int frontNum = calcNumOfFrontElements();
         Type[] newArr = (Type[]) new Object[capacity];
-        System.arraycopy(items, 0, newArr,0, lastIndex);
-        System.arraycopy(items, firstIndex, newArr,(lastIndex + (capacity - items.length)), items.length - lastIndex);
-        firstIndex = lastIndex + (capacity - items.length) - 1;
-        items = newArr;
-    }*/
 
+        if(nextLast > 0 && nextFirst < items.length - 1){
+        System.arraycopy(items, 0, newArr, 0, nextLast);
+        System.arraycopy(items, nextFirst + 1, newArr, nextLast + size, frontNum);
+        } else if(nextLast == 0 && nextFirst < items.length){
+            System.arraycopy(items, nextFirst + 1, newArr, nextLast + size, frontNum);
+        } else{
+            System.arraycopy(items, 0, newArr, 0, nextLast);
+        }
+
+        nextFirst = nextLast + size - 1;
+        items = newArr;
+    }
+
+    public int getArrayLength(){
+        return items.length;
+    }
+    public int calcNumOfFrontElements(){
+        return size - nextLast;
+    }
+
+    public int calcNumOfBackElements(){
+        return nextLast;
+    }
+
+    public int getNewFirstIndex(int capacity){
+        return nextFirst - capacity;
+    }
+
+    public void downsizeArray(int capacity){
+        int frontNum = calcNumOfFrontElements();
+        int newFirstIndex = getNewFirstIndex(capacity);
+        Type[] newArr = (Type[]) new Object[capacity];
+
+        if (nextFirst == items.length - 1 && nextLast > 0){
+            System.arraycopy(items, 0, newArr, 0, nextLast);
+        } else if(nextLast == 0 && nextFirst < items.length){
+            System.arraycopy(items, nextFirst + 1, newArr, newFirstIndex + 1, frontNum);
+        }else if (nextLast > nextFirst){
+            System.arraycopy(items, nextFirst + 1, newArr, newFirstIndex + 1, size);
+            nextLast = nextLast - capacity;
+        }else{
+            System.arraycopy(items, 0, newArr, 0, nextLast);
+            System.arraycopy(items, nextFirst + 1, newArr, newFirstIndex + 1, frontNum);
+        }
+
+
+        nextFirst = newFirstIndex;
+        items = newArr;
+    }
     public void addFirst(Type item){
-        /*if (size == items.length){
+        if (size == items.length){
             resize(size * 2);
-        }*/
+        }
 
         if(nextFirst < 0){
             nextFirst = items.length - 1;
@@ -37,9 +82,9 @@ public class ArrayDeque<Type> {
     };
 
     public void addLast(Type item){
-        /*if (size == items.length){
+        if (size == items.length){
             resize(size * 2);
-        }*/
+        }
 
         if (nextLast > items.length - 1){
             nextLast = 0;
@@ -53,16 +98,15 @@ public class ArrayDeque<Type> {
         return ((size * 1.0) / items.length);
     }
 
-    private boolean reverse = false;
     public Type removeFirst(){
         //System.out.println(getUsageRatio());
 
         if(isEmpty()){
             return null;
         }
-        /*if (getUsageRatio() < 0.25 && items.length > 16){
-            resize(items.length / 2);
-        }*/
+        if (getUsageRatio() <= 0.25 && items.length > 16){
+            downsizeArray(items.length / 2);
+        }
 
         Type item;
 
@@ -80,7 +124,7 @@ public class ArrayDeque<Type> {
 
         size -= 1;
 
-        System.out.println("First item removed: " + item);
+        //System.out.println("First item removed: " + item);
         return item;
     };
 
@@ -89,9 +133,9 @@ public class ArrayDeque<Type> {
             return null;
         }
         //System.out.println(getUsageRatio());
-        /*if (getUsageRatio() < 0.25 && items.length > 16){
-            resize(items.length / 2);
-        }*/
+        if (getUsageRatio() <= 0.25 && items.length > 16){
+            downsizeArray(items.length / 2);
+        }
 
         Type item;
         if(nextLast - 1 < 0){
@@ -104,7 +148,7 @@ public class ArrayDeque<Type> {
             nextLast -= 1;
         }
 
-        System.out.println("Last item removed: " + item);
+        //System.out.println("Last item removed: " + item);
         size -= 1;
         return item;
     };
@@ -123,18 +167,19 @@ public class ArrayDeque<Type> {
 
     public static void main(String[] args) {
         ArrayDeque<Integer> L = new ArrayDeque<>();
-        L.addLast(6);
-        L.addLast(7);
-        L.addFirst(1);
-        L.addFirst(2);
-        L.removeLast();
-        L.removeLast();
-        L.removeLast();
-        L.removeLast();
-        L.addLast(6);
-        L.addLast(7);
-        L.addLast(8);
-        L.addLast(9);
+
+        /*for(int i = 0; i < 32; i ++){
+            L.addLast(1);
+        }*/
+
+        for(int i = 0; i <= 32; i ++){
+            L.addFirst(1);
+        }
+
+        for(int i = 0; i < 50; i++){
+            L.removeFirst();
+        }
+
 
         /*L.addFirst(1);
         L.addFirst(2);
