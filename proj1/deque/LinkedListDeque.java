@@ -1,6 +1,8 @@
 package deque;
 
-public class LinkedListDeque<Type> {
+import java.util.Iterator;
+
+public class LinkedListDeque<Type> implements Iterable<Type>{
     private class Node{
         public Node prev;
         Type data;
@@ -36,6 +38,11 @@ public class LinkedListDeque<Type> {
         }
     }
 
+    public Iterator<Type> iterator(){
+        return new LLIterator();
+    }
+
+
     private Node sentinel;
 
     int size;
@@ -45,6 +52,22 @@ public class LinkedListDeque<Type> {
         sentinel.setPrev(sentinel);
         sentinel.setNext(sentinel);
         size = 0;
+    }
+
+    public class LLIterator implements Iterator<Type>{
+        int pos = 0;
+        Node p = sentinel.next;
+
+        public boolean hasNext(){
+            return pos < size;
+        }
+
+        public Type next(){
+            Type item = p.getValue();
+            p = p.getNext();
+            pos += 1;
+            return item;
+        }
     }
 
     public void addBetween(Node firstNode, Type item, Node secondNode){
@@ -155,9 +178,10 @@ public class LinkedListDeque<Type> {
         L.addFirst(0);
         L.addLast(4);
         L.addLast(5);
-        L.printDeque();
-        System.out.println(L.size());
-        System.out.println(L.get(5));
-        System.out.println(L.getRecursive(5));
+        //L.printDeque();
+
+        for (int i: L){
+            System.out.print(i + " ");
+        }
     }
 }

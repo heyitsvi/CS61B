@@ -1,6 +1,7 @@
 package deque;
+import java.util.Iterator;
 
-public class ArrayDeque<Type> {
+public class ArrayDeque<Type> implements Iterable<Type>{
     private Type[] items;
     private int size;
 
@@ -15,13 +16,34 @@ public class ArrayDeque<Type> {
         nextLast = 0;
     }
 
+    public Iterator<Type> iterator() {
+        return new arrayDequeIterator();
+    }
+
+    private class arrayDequeIterator implements Iterator<Type>{
+        private int pos;
+
+        arrayDequeIterator(){
+            pos = 0;
+        }
+
+        public boolean hasNext(){
+            return pos < size;
+        }
+
+        public Type next(){
+            Type item = items[pos];
+            pos += 1;
+            return item;
+        }
+    }
     public void resize(int capacity){
         int frontNum = calcNumOfFrontElements();
         Type[] newArr = (Type[]) new Object[capacity];
 
         if(nextLast > 0 && nextFirst < items.length - 1){
-        System.arraycopy(items, 0, newArr, 0, nextLast);
-        System.arraycopy(items, nextFirst + 1, newArr, nextLast + size, frontNum);
+            System.arraycopy(items, 0, newArr, 0, nextLast);
+            System.arraycopy(items, nextFirst + 1, newArr, nextLast + size, frontNum);
         } else if(nextLast == 0 && nextFirst < items.length){
             System.arraycopy(items, nextFirst + 1, newArr, nextLast + size, frontNum);
         } else{
@@ -165,6 +187,13 @@ public class ArrayDeque<Type> {
         return size == 0;
     }
 
+    public void printDeque(){
+        for(int i = 0; i < size; i++){
+            System.out.print(items[i] + " ");
+        }
+        System.out.println();
+    }
+
     public static void main(String[] args) {
         ArrayDeque<Integer> L = new ArrayDeque<>();
 
@@ -172,13 +201,17 @@ public class ArrayDeque<Type> {
             L.addLast(1);
         }*/
 
-        for(int i = 0; i <= 32; i ++){
+        for(int i = 0; i <= 6; i ++){
             L.addFirst(1);
         }
 
-        for(int i = 0; i < 50; i++){
-            L.removeFirst();
+        for(Integer i: L){
+            System.out.print(i + " ");
         }
+
+        /*for(int i = 0; i < 50; i++){
+            L.removeFirst();
+        }*/
 
 
         /*L.addFirst(1);
