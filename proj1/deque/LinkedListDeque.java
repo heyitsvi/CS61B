@@ -2,7 +2,7 @@ package deque;
 
 import java.util.Iterator;
 
-public class LinkedListDeque<Type> implements Iterable<Type>{
+public class LinkedListDeque<Type> implements Iterable<Type>, Deque<Type>{
     private class Node{
         public Node prev;
         Type data;
@@ -77,28 +77,33 @@ public class LinkedListDeque<Type> implements Iterable<Type>{
 
     }
 
+    @Override
     //Adds an item of type T to the front of the deque. You can assume that item is never null.
     public void addFirst(Type item){
         addBetween(sentinel, item, sentinel.next);
         size += 1;
     };
 
+    @Override
     //Adds an item of type T to the back of the deque. You can assume that item is never null.
     public void addLast(Type item){
         addBetween(sentinel.getPrev(), item, sentinel);
         size += 1;
     };
 
+    @Override
     //Returns true if deque is empty, false otherwise.
     public boolean isEmpty(){
         return size == 0;
     };
 
+    @Override
     //Returns the number of items in the deque.
     public int size(){
         return size;
     };
 
+    @Override
     //Prints the items in the deque from first to last, separated by a space. Once all the items have been printed, print out a new line.
     public void printDeque(){
         Node n = sentinel.next;
@@ -126,6 +131,8 @@ public class LinkedListDeque<Type> implements Iterable<Type>{
 
         return originalValue;
     }
+
+    @Override
     //Removes and returns the item at the front of the deque. If no such item exists, returns null.
     public Type removeFirst(){
         if (isEmpty()){
@@ -136,6 +143,7 @@ public class LinkedListDeque<Type> implements Iterable<Type>{
         return removeNode(sentinel.getNext());
     };
 
+    @Override
     //Removes and returns the item at the back of the deque. If no such item exists, returns null.
     public Type removeLast(){
         if(isEmpty()){
@@ -146,6 +154,11 @@ public class LinkedListDeque<Type> implements Iterable<Type>{
         return removeNode(sentinel.getPrev());
     };
 
+    public Node getFirstElementPointer(){
+        return sentinel.next;
+    }
+
+    @Override
     //Gets the item at the given index, where 0 is the front, 1 is the next item, and so forth. If no such item exists, returns null. Must not alter the deque!
     public Type get(int index){
         Node p = sentinel.next;
@@ -169,8 +182,39 @@ public class LinkedListDeque<Type> implements Iterable<Type>{
         return getRecursive(index, sentinel.getNext());
     }
 
+
+    public boolean equals(Object o){
+        if (this == o){
+            return true;
+        }
+
+        if (o == null || (this.getClass() != o.getClass())){
+            return false;
+        }
+
+        LinkedListDeque<Type> other = (LinkedListDeque<Type>) o;
+
+        if(other.size() != this.size()){
+            return false;
+        }
+
+        Node thisP = this.getFirstElementPointer();
+        Node otherP = other.getFirstElementPointer();
+        int iter = size;
+        while(iter > 0){
+            if (otherP.getValue() != thisP.getValue()){
+                return false;
+            }
+            iter -= 1;
+            thisP = thisP.getNext();
+            otherP = otherP.getNext();
+        }
+        return true;
+    }
+
     public static void main(String[] args) {
         LinkedListDeque<Integer> L = new LinkedListDeque<>();
+        LinkedListDeque<Integer> M = new LinkedListDeque<>();
 
         L.addFirst(3);
         L.addFirst(2);
@@ -180,8 +224,14 @@ public class LinkedListDeque<Type> implements Iterable<Type>{
         L.addLast(5);
         //L.printDeque();
 
-        for (int i: L){
-            System.out.print(i + " ");
-        }
+        M.addFirst(3);
+        M.addFirst(2);
+        M.addFirst(1);
+        M.addFirst(0);
+        M.addLast(4);
+        M.addLast(5);
+        M.addLast(1);
+
+        System.out.println(M.equals(L));
     }
 }

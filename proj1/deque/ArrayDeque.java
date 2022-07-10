@@ -1,7 +1,7 @@
 package deque;
 import java.util.Iterator;
 
-public class ArrayDeque<Type> implements Iterable<Type>{
+public class ArrayDeque<Type> implements Iterable<Type>, Deque<Type>{
     private Type[] items;
     private int size;
 
@@ -90,6 +90,7 @@ public class ArrayDeque<Type> implements Iterable<Type>{
         nextFirst = newFirstIndex;
         items = newArr;
     }
+    @Override
     public void addFirst(Type item){
         if (size == items.length){
             resize(size * 2);
@@ -103,6 +104,7 @@ public class ArrayDeque<Type> implements Iterable<Type>{
         size += 1;
     };
 
+    @Override
     public void addLast(Type item){
         if (size == items.length){
             resize(size * 2);
@@ -120,6 +122,7 @@ public class ArrayDeque<Type> implements Iterable<Type>{
         return ((size * 1.0) / items.length);
     }
 
+    @Override
     public Type removeFirst(){
         //System.out.println(getUsageRatio());
 
@@ -150,6 +153,7 @@ public class ArrayDeque<Type> implements Iterable<Type>{
         return item;
     };
 
+    @Override
     public Type removeLast(){
         if(isEmpty()){
             return null;
@@ -175,18 +179,23 @@ public class ArrayDeque<Type> implements Iterable<Type>{
         return item;
     };
 
+    @Override
     public Type get(int i){
         return items[i];
     };
 
+
+    @Override
     public int size(){
         return size;
     }
 
+    @Override
     public boolean isEmpty(){
         return size == 0;
     }
 
+    @Override
     public void printDeque(){
         for(int i = 0; i < size; i++){
             System.out.print(items[i] + " ");
@@ -194,8 +203,32 @@ public class ArrayDeque<Type> implements Iterable<Type>{
         System.out.println();
     }
 
+    public boolean equals(Object o){
+        if (this == o){
+            return true;
+        }
+
+        if (o == null || (this.getClass() != o.getClass())){
+            return false;
+        }
+
+        ArrayDeque<Type> other = (ArrayDeque<Type>) o;
+
+        if(other.size() != this.size()){
+            return false;
+        }
+
+        for(int i = 0; i < size; i++){
+            if(this.get(i) != other.get(i)){
+                return false;
+            }
+        }
+        return true;
+    }
+
     public static void main(String[] args) {
         ArrayDeque<Integer> L = new ArrayDeque<>();
+        ArrayDeque<Integer> M = new ArrayDeque<>();
 
         /*for(int i = 0; i < 32; i ++){
             L.addLast(1);
@@ -203,11 +236,12 @@ public class ArrayDeque<Type> implements Iterable<Type>{
 
         for(int i = 0; i <= 6; i ++){
             L.addFirst(1);
+            M.addFirst(1);
         }
+        M.addFirst(1);
 
-        for(Integer i: L){
-            System.out.print(i + " ");
-        }
+
+        System.out.println(L.equals(M));
 
         /*for(int i = 0; i < 50; i++){
             L.removeFirst();
