@@ -5,6 +5,8 @@ public class ArrayDeque<Type> implements Iterable<Type>, Deque<Type>{
     private Type[] items;
     private int size;
 
+    public int val;
+
     private int nextFirst;
 
     private int nextLast;
@@ -85,8 +87,6 @@ public class ArrayDeque<Type> implements Iterable<Type>, Deque<Type>{
             System.arraycopy(items, 0, newArr, 0, nextLast);
             System.arraycopy(items, nextFirst + 1, newArr, newFirstIndex + 1, frontNum);
         }
-
-
         nextFirst = newFirstIndex;
         items = newArr;
     }
@@ -188,11 +188,6 @@ public class ArrayDeque<Type> implements Iterable<Type>, Deque<Type>{
     @Override
     public int size(){
         return size;
-    }
-
-    @Override
-    public boolean isEmpty(){
-        return size == 0;
     }
 
     @Override
