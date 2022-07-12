@@ -1,13 +1,13 @@
 package deque;
-
 import java.util.Iterator;
+import java.util.Comparator;
 
 public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
     private class Node {
-        public Node prev;
+        private Node prev;
         T data;
-        public Node next;
-        public Node(Node p, T i, Node n) {
+        private Node next;
+        Node(Node p, T i, Node n) {
             this.prev = p;
             this.data = i;
             this.next = n;
@@ -48,7 +48,7 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
     private int size;
 
     public LinkedListDeque() {
-        sentinel = new Node(null, null,null);
+        sentinel = new Node(null, null, null);
         sentinel.setPrev(sentinel);
         sentinel.setNext(sentinel);
         size = 0;
@@ -98,11 +98,12 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
     };
 
     @Override
-    //Prints the items in the deque from first to last, separated by a space. Once all the items have been printed, print out a new line.
+    //Prints the items in the deque from first to last, separated by a space.
+    //Once all the items have been printed, print out a new line.
     public void printDeque() {
         Node n = sentinel.next;
 
-        while(n != sentinel){
+        while (n != sentinel) {
             System.out.print(n.getValue() + " ");
 
             n = n.getNext();
@@ -153,7 +154,8 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
     }
 
     @Override
-    //Gets the item at the given index, where 0 is the front, 1 is the next item, and so forth. If no such item exists, returns null. Must not alter the deque!
+    //Gets the item at the given index, where 0 is the front, 1 is the next item, and so forth.
+    //If no such item exists, returns null. Must not alter the deque!
     public T get(int index) {
         Node p = sentinel.next;
 
@@ -166,7 +168,7 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
     };
 
     private T getRecursive(int index, Node n) {
-        if (index == 0){
+        if (index == 0) {
             return n.getValue();
         }
 
@@ -227,5 +229,37 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
         M.addLast(1);
 
         System.out.println(M.equals(L));
+
+        /*Comparator<Integer> intCmp = MaxArrayDeque.getIntComparator();
+        Comparator<String> strCmp = MaxArrayDeque.getStrComparator();
+        MaxArrayDeque<Integer> L = new MaxArrayDeque<>(intCmp);
+        MaxArrayDeque<String> L2 = new MaxArrayDeque<>(strCmp);
+        MaxArrayDeque<Integer> L3 = new MaxArrayDeque<>(intCmp);
+        L.addFirst(1);
+        L.addFirst(2);
+        L.addFirst(3);
+        L.addFirst(9);
+        L.addFirst(4);
+        L.addLast(2);
+        L.addLast(12);*/
+
+        /*System.out.println(L.max());
+
+        L3.addFirst(1);
+        L3.addFirst(2);
+        L3.addFirst(3);
+        L3.addFirst(9);
+        L3.addFirst(4);
+        L3.addLast(2);
+        L3.addLast(12);
+        L3.addLast(10);
+        L2.addFirst("a");
+        L2.addFirst("b");
+        L2.addFirst("e");
+        L2.addFirst("f");
+        L2.addLast("y");
+        L2.addLast("r");
+
+        System.out.println(L2.max());*/
     }
 }

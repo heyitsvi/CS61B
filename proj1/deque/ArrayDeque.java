@@ -17,13 +17,13 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
     }
 
     public Iterator<T> iterator() {
-        return new arrayDequeIterator();
+        return new ArrayDequeIterator();
     }
 
-    private class arrayDequeIterator implements Iterator<T> {
+    private class ArrayDequeIterator implements Iterator<T> {
         private int pos;
 
-        arrayDequeIterator() {
+        ArrayDequeIterator() {
             pos = 0;
         }
 
@@ -44,7 +44,7 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
         if (nextLast > 0 && nextFirst < items.length - 1) {
             System.arraycopy(items, 0, newArr, 0, nextLast);
             System.arraycopy(items, nextFirst + 1, newArr, nextLast + size, frontNum);
-        } else if (nextLast == 0 && nextFirst < items.length){
+        } else if (nextLast == 0 && nextFirst < items.length) {
             System.arraycopy(items, nextFirst + 1, newArr, nextLast + size, frontNum);
         } else {
             System.arraycopy(items, 0, newArr, 0, nextLast);
@@ -76,7 +76,7 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
 
         if (nextFirst == items.length - 1 && nextLast > 0) {
             System.arraycopy(items, 0, newArr, 0, nextLast);
-        } else if(nextLast == 0 && nextFirst < items.length) {
+        } else if (nextLast == 0 && nextFirst < items.length) {
             System.arraycopy(items, nextFirst + 1, newArr, newFirstIndex + 1, frontNum);
         } else if (nextLast > nextFirst) {
             System.arraycopy(items, nextFirst + 1, newArr, newFirstIndex + 1, size);
@@ -137,7 +137,7 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
             item = items[nextFirst + 1];
             items[nextFirst + 1] = null;
             nextFirst += 1;
-        }else {
+        } else {
             item = items[0];
             items[0] = null;
             nextFirst = 0;
@@ -157,7 +157,7 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
             return null;
         }
         //System.out.println(getUsageRatio());
-        if (getUsageRatio() <= 0.25 && items.length > 16){
+        if (getUsageRatio() <= 0.25 && items.length > 16) {
             downsizeArray(items.length / 2);
         }
 
@@ -166,7 +166,7 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
             item = items[items.length - 1];
             items[items.length - 1] = null;
             nextLast = items.length - 1;
-        }else {
+        } else {
             item = items[nextLast - 1];
             items[nextLast - 1] = null;
             nextLast -= 1;
@@ -227,7 +227,7 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
             L.addLast(1);
         }*/
 
-        for (int i = 0; i <= 6; i ++) {
+        for (int i = 0; i <= 6; i++) {
             L.addFirst(1);
             M.addFirst(1);
         }
@@ -261,3 +261,4 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
         L.addFirst(4);*/
     }
 }
+
