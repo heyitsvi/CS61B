@@ -1,54 +1,52 @@
 package deque;
 import java.util.Iterator;
 
-public class ArrayDeque<Type> implements Iterable<Type>, Deque<Type>{
-    private Type[] items;
+public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
+    private T[] items;
     private int size;
-
-    public int val;
 
     private int nextFirst;
 
     private int nextLast;
 
-    public ArrayDeque(){
-        items = (Type[]) new Object[8];
+    public ArrayDeque() {
+        items = (T[]) new Object[8];
         nextFirst = items.length - 1;
         size = 0;
         nextLast = 0;
     }
 
-    public Iterator<Type> iterator() {
+    public Iterator<T> iterator() {
         return new arrayDequeIterator();
     }
 
-    private class arrayDequeIterator implements Iterator<Type>{
+    private class arrayDequeIterator implements Iterator<T> {
         private int pos;
 
-        arrayDequeIterator(){
+        arrayDequeIterator() {
             pos = 0;
         }
 
-        public boolean hasNext(){
+        public boolean hasNext() {
             return pos < size;
         }
 
-        public Type next(){
-            Type item = items[pos];
+        public T next() {
+            T item = items[pos];
             pos += 1;
             return item;
         }
     }
-    public void resize(int capacity){
+    private void resize(int capacity) {
         int frontNum = calcNumOfFrontElements();
-        Type[] newArr = (Type[]) new Object[capacity];
+        T[] newArr = (T[]) new Object[capacity];
 
-        if(nextLast > 0 && nextFirst < items.length - 1){
+        if (nextLast > 0 && nextFirst < items.length - 1) {
             System.arraycopy(items, 0, newArr, 0, nextLast);
             System.arraycopy(items, nextFirst + 1, newArr, nextLast + size, frontNum);
-        } else if(nextLast == 0 && nextFirst < items.length){
+        } else if (nextLast == 0 && nextFirst < items.length){
             System.arraycopy(items, nextFirst + 1, newArr, nextLast + size, frontNum);
-        } else{
+        } else {
             System.arraycopy(items, 0, newArr, 0, nextLast);
         }
 
@@ -56,34 +54,34 @@ public class ArrayDeque<Type> implements Iterable<Type>, Deque<Type>{
         items = newArr;
     }
 
-    public int getArrayLength(){
+    public int getArrayLength() {
         return items.length;
     }
-    public int calcNumOfFrontElements(){
+    private int calcNumOfFrontElements() {
         return size - nextLast;
     }
 
-    public int calcNumOfBackElements(){
+    private int calcNumOfBackElements() {
         return nextLast;
     }
 
-    public int getNewFirstIndex(int capacity){
+    private int getNewFirstIndex(int capacity) {
         return nextFirst - capacity;
     }
 
-    public void downsizeArray(int capacity){
+    private void downsizeArray(int capacity) {
         int frontNum = calcNumOfFrontElements();
         int newFirstIndex = getNewFirstIndex(capacity);
-        Type[] newArr = (Type[]) new Object[capacity];
+        T[] newArr = (T[]) new Object[capacity];
 
-        if (nextFirst == items.length - 1 && nextLast > 0){
+        if (nextFirst == items.length - 1 && nextLast > 0) {
             System.arraycopy(items, 0, newArr, 0, nextLast);
-        } else if(nextLast == 0 && nextFirst < items.length){
+        } else if(nextLast == 0 && nextFirst < items.length) {
             System.arraycopy(items, nextFirst + 1, newArr, newFirstIndex + 1, frontNum);
-        }else if (nextLast > nextFirst){
+        } else if (nextLast > nextFirst) {
             System.arraycopy(items, nextFirst + 1, newArr, newFirstIndex + 1, size);
             nextLast = nextLast - capacity;
-        }else{
+        } else {
             System.arraycopy(items, 0, newArr, 0, nextLast);
             System.arraycopy(items, nextFirst + 1, newArr, newFirstIndex + 1, frontNum);
         }
@@ -91,12 +89,12 @@ public class ArrayDeque<Type> implements Iterable<Type>, Deque<Type>{
         items = newArr;
     }
     @Override
-    public void addFirst(Type item){
-        if (size == items.length){
+    public void addFirst(T item) {
+        if (size == items.length) {
             resize(size * 2);
         }
 
-        if(nextFirst < 0){
+        if (nextFirst < 0) {
             nextFirst = items.length - 1;
         }
         items[nextFirst] = item;
@@ -105,12 +103,12 @@ public class ArrayDeque<Type> implements Iterable<Type>, Deque<Type>{
     };
 
     @Override
-    public void addLast(Type item){
-        if (size == items.length){
+    public void addLast(T item) {
+        if (size == items.length) {
             resize(size * 2);
         }
 
-        if (nextLast > items.length - 1){
+        if (nextLast > items.length - 1) {
             nextLast = 0;
         }
         items[nextLast] = item;
@@ -118,28 +116,28 @@ public class ArrayDeque<Type> implements Iterable<Type>, Deque<Type>{
         size += 1;
     };
 
-    public double getUsageRatio(){
+    private double getUsageRatio() {
         return ((size * 1.0) / items.length);
     }
 
     @Override
-    public Type removeFirst(){
+    public T removeFirst() {
         //System.out.println(getUsageRatio());
 
-        if(isEmpty()){
+        if (isEmpty()) {
             return null;
         }
-        if (getUsageRatio() <= 0.25 && items.length > 16){
+        if (getUsageRatio() <= 0.25 && items.length > 16) {
             downsizeArray(items.length / 2);
         }
 
-        Type item;
+        T item;
 
-        if (nextFirst < items.length - 1){
+        if (nextFirst < items.length - 1) {
             item = items[nextFirst + 1];
             items[nextFirst + 1] = null;
             nextFirst += 1;
-        }else{
+        }else {
             item = items[0];
             items[0] = null;
             nextFirst = 0;
@@ -154,8 +152,8 @@ public class ArrayDeque<Type> implements Iterable<Type>, Deque<Type>{
     };
 
     @Override
-    public Type removeLast(){
-        if(isEmpty()){
+    public T removeLast() {
+        if (isEmpty()) {
             return null;
         }
         //System.out.println(getUsageRatio());
@@ -163,12 +161,12 @@ public class ArrayDeque<Type> implements Iterable<Type>, Deque<Type>{
             downsizeArray(items.length / 2);
         }
 
-        Type item;
-        if(nextLast - 1 < 0){
+        T item;
+        if (nextLast - 1 < 0) {
             item = items[items.length - 1];
             items[items.length - 1] = null;
             nextLast = items.length - 1;
-        } else{
+        }else {
             item = items[nextLast - 1];
             items[nextLast - 1] = null;
             nextLast -= 1;
@@ -180,41 +178,41 @@ public class ArrayDeque<Type> implements Iterable<Type>, Deque<Type>{
     };
 
     @Override
-    public Type get(int i){
+    public T get(int i) {
         return items[i];
     };
 
 
     @Override
-    public int size(){
+    public int size() {
         return size;
     }
 
     @Override
-    public void printDeque(){
-        for(int i = 0; i < size; i++){
+    public void printDeque() {
+        for (int i = 0; i < size; i++) {
             System.out.print(items[i] + " ");
         }
         System.out.println();
     }
 
-    public boolean equals(Object o){
-        if (this == o){
+    public boolean equals(Object o) {
+        if (this == o) {
             return true;
         }
 
-        if (o == null || (this.getClass() != o.getClass())){
+        if (o == null || (this.getClass() != o.getClass())) {
             return false;
         }
 
-        ArrayDeque<Type> other = (ArrayDeque<Type>) o;
+        ArrayDeque<T> other = (ArrayDeque<T>) o;
 
-        if(other.size() != this.size()){
+        if (other.size() != this.size()) {
             return false;
         }
 
-        for(int i = 0; i < size; i++){
-            if(this.get(i) != other.get(i)){
+        for (int i = 0; i < size; i++) {
+            if (this.get(i) != other.get(i)) {
                 return false;
             }
         }
@@ -229,7 +227,7 @@ public class ArrayDeque<Type> implements Iterable<Type>, Deque<Type>{
             L.addLast(1);
         }*/
 
-        for(int i = 0; i <= 6; i ++){
+        for (int i = 0; i <= 6; i ++) {
             L.addFirst(1);
             M.addFirst(1);
         }

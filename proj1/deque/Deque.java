@@ -1,16 +1,16 @@
 package deque;
 
-public interface Deque<Type> {
-    public void addFirst(Type item);
-    public void addLast(Type item);
+public interface Deque<T> {
+    void addFirst(T item);
+    void addLast(T item);
 
     //Returns true if deque is empty, false otherwise.
-    default public boolean isEmpty(){
+    default boolean isEmpty() {
         return this.size() == 0;
     };
-    public int size();
-    public void printDeque();
-    public Type removeFirst();
-    public Type removeLast();
-    public Type get(int index);
+    int size();
+    void printDeque();
+    T removeFirst();
+    T removeLast();
+    T get(int index);
 }

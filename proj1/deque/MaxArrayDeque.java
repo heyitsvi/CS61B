@@ -1,40 +1,38 @@
 package deque;
 import java.util.Comparator;
 
-public class MaxArrayDeque<Type> extends ArrayDeque<Type>{
+public class MaxArrayDeque<T> extends ArrayDeque<T> {
     //creates a MaxArrayDeque with the given Comparator.
-
-    ArrayDeque<Type> deque;
-    public Comparator<Type> comp;
-    public MaxArrayDeque(Comparator<Type> c){
+    private final Comparator<T> comp;
+    public MaxArrayDeque(Comparator<T> c) {
         comp = c;
     };
 
     /**returns the maximum element in the deque as governed by the previously given Comparator.
      If the MaxArrayDeque is empty, simply return null. */
-    public Type max(){
+    public T max() {
         return max(comp);
     }
 
-    public Type max(Comparator<Type> c){
-        if(this.isEmpty()){
+    public T max(Comparator<T> c) {
+        if (this.isEmpty()) {
             return null;
         }
 
         int maxElementIndex = 0;
 
-        for(int i = 0; i < this.size(); i++){
-            if (this.get(maxElementIndex) == null){
+        for (int i = 0; i < this.size(); i++) {
+            if (this.get(maxElementIndex) == null) {
                 maxElementIndex += 1;
                 continue;
             }
 
-            if (this.get(i) == null){
+            if (this.get(i) == null) {
                 continue;
             }
 
 
-            if (c.compare(this.get(i), this.get(maxElementIndex)) > 0){
+            if (c.compare(this.get(i), this.get(maxElementIndex)) > 0) {
                 maxElementIndex = i;
             }
         }
@@ -42,46 +40,46 @@ public class MaxArrayDeque<Type> extends ArrayDeque<Type>{
         return this.get(maxElementIndex);
     }
 
-    public static class intComparator implements Comparator<Integer>{
+    private static class intComparator implements Comparator<Integer> {
         @Override
         public int compare(Integer o1, Integer o2) {
             return o1 - o2;
         }
     }
 
-    public static class strComparator implements Comparator<String>{
+    private static class strComparator implements Comparator<String> {
         @Override
         public int compare(String o1, String o2) {
             return o1.compareTo(o2);
         }
     }
 
-    public static Comparator<String> getStrComparator(){
+    private static Comparator<String> getStrComparator() {
         return new strComparator();
     }
 
-    public static Comparator<Integer> getIntComparator(){
+    private static Comparator<Integer> getIntComparator() {
         return new intComparator();
     }
 
     @Override
-    public boolean equals(Object o){
-        if (this == o){
+    public boolean equals(Object o) {
+        if (this == o) {
             return true;
         }
 
-        if (o == null || (this.getClass() != o.getClass())){
+        if (o == null || (this.getClass() != o.getClass())) {
             return false;
         }
 
-        MaxArrayDeque<Type> other = (MaxArrayDeque<Type>) o;
+        MaxArrayDeque<T> other = (MaxArrayDeque<T>) o;
 
-        if(other.size() != this.size()){
+        if(other.size() != this.size()) {
             return false;
         }
 
-        for(int i = 0; i < this.size(); i++){
-            if(this.get(i) != other.get(i)){
+        for (int i = 0; i < this.size(); i++) {
+            if (this.get(i) != other.get(i)) {
                 return false;
             }
         }
