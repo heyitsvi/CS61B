@@ -4,22 +4,22 @@ import edu.princeton.cs.algs4.StdDraw;
 
 public class GuitarHero {
 
-    private static double calcFrequencyOfNote(int index){
+    private static double calcFrequencyOfNote(int index) {
         return 440 * Math.pow(2, (index - 24) / 12.0);
     }
 
-    public static GuitarString GS;
+    private static GuitarString GS;
 
     //public static GuitarString[] arrGS;
 
-    public static String keyboard = "q2we4r5ty7u8i9op-[=zxdcfvgbnjmk,.;/' ";
-    public static final double CONCERT_A = 440.0;
-    public static final double CONCERT_C = CONCERT_A * Math.pow(2, 3.0 / 12.0);
+    private static String keyboard = "q2we4r5ty7u8i9op-[=zxdcfvgbnjmk,.;/' ";
+    //public static final double CONCERT_A = 440.0;
+    //public static final double CONCERT_C = CONCERT_A * Math.pow(2, 3.0 / 12.0);
 
     public static void main(String[] args) {
         GuitarString[] arrGS  = new GuitarString[37];
 
-        for (int i = 0; i < 37; i++){
+        for (int i = 0; i < 37; i++) {
             GS = new GuitarString(calcFrequencyOfNote(i));
             arrGS[i] = GS;
         }
@@ -44,7 +44,7 @@ public class GuitarHero {
             //double sample = stringA.sample() + stringC.sample();
 
             double sample = 0;
-            for(int i = 0; i < 37; i++){
+            for (int i = 0; i < 37; i++) {
                 sample += arrGS[i].sample();
             }
 
@@ -55,7 +55,7 @@ public class GuitarHero {
             //stringA.tic();
             //stringC.tic();
 
-            for(int i = 0; i < 37; i++){
+            for (int i = 0; i < 37; i++) {
                 arrGS[i].tic();
             }
         }

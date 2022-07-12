@@ -54,9 +54,10 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
         items = newArr;
     }
 
-    public int getArrayLength() {
+    /*private int getArrayLength() {
         return items.length;
-    }
+    }*/
+
     private int calcNumOfFrontElements() {
         return size - nextLast;
     }
