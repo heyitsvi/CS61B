@@ -1,6 +1,6 @@
 package deque;
+import java.lang.reflect.Type;
 import java.util.Iterator;
-import java.util.Comparator;
 
 public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
     private class Node {
@@ -111,7 +111,7 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
         System.out.println();
     };
 
-    public T removeNode(Node n) {
+    private T removeNode(Node n) {
         T originalValue = n.getValue();
         Node prevNode = n.getPrev();
         Node nextNode = n.getNext();
@@ -180,15 +180,37 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
 
 
     public boolean equals(Object o) {
+
         if (this == o) {
             return true;
         }
 
-        if (o == null || (this.getClass() != o.getClass())) {
+        if (o == null) {
             return false;
         }
 
-        LinkedListDeque<T> other = (LinkedListDeque<T>) o;
+        if (this.getClass() != o.getClass()) {
+            if (!(o instanceof Deque)) {
+                return false;
+            }
+        }
+
+        Deque<Type> other = (Deque<Type>) o;
+
+
+        if (other.size() != this.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < this.size(); i++) {
+            if (this.get(i) != other.get(i)) {
+                return false;
+            }
+        }
+
+        return true;
+
+        /*LinkedListDeque<T> other = (LinkedListDeque<T>) o;
 
         if (other.size() != this.size()) {
             return false;
@@ -205,6 +227,6 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
             thisP = thisP.getNext();
             otherP = otherP.getNext();
         }
-        return true;
+        return true;*/
     }
 }

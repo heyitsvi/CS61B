@@ -1,5 +1,6 @@
 package deque;
 
+import net.sf.saxon.functions.ConstantFunction;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -72,6 +73,20 @@ public class LinkedListDequeTest {
         errorMsg += "  actual size() returned 0\n";
 
         assertEquals(errorMsg, 0, size);
+    }
+
+    @Test
+    /* LinkedListDeque and ArrayDeques with the same elements should be equal*/
+    public void equalsCheck(){
+        LinkedListDeque<Integer> L = new LinkedListDeque<>();
+        ArrayDeque<Integer> M = new ArrayDeque<>();
+
+        for(int i = 0; i < 5; i++) {
+            L.addFirst(1);
+            M.addFirst(1);
+        }
+
+        assertEquals(true, L.equals(M));
     }
 
     @Test

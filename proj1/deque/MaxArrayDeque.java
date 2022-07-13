@@ -62,7 +62,7 @@ public class MaxArrayDeque<T> extends ArrayDeque<T> {
         return new IntComparator();
     }
 
-    @Override
+    /*@Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -84,6 +84,6 @@ public class MaxArrayDeque<T> extends ArrayDeque<T> {
             }
         }
         return true;
-    }
+    }*/
 }
 

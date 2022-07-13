@@ -33,7 +33,7 @@ public class GuitarString {
         }
     }
 
-    private double getRandomNumber(){
+    private double getRandomNumber() {
         return Math.random() - 0.5;
     }
 
