@@ -219,7 +219,7 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
         }
 
         for (int i = 0; i < size; i++) {
-            if (this.get(i) != other.get(i)) {
+            if (!java.util.Objects.deepEquals(this.get(i), other.get(i))) {
                 return false;
             }
         }

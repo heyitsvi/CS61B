@@ -3,6 +3,7 @@ package deque;
 import edu.princeton.cs.algs4.StdRandom;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Created by hug.
@@ -69,6 +70,24 @@ public class ArrayDequeTest {
         for(int i = 0; i < 3; i++){
             assertEquals(L1.removeFirst(), L2.removeFirst());
         }
+    }
+
+    /** Tests for deep equality */
+    @Test
+    public void deepEqualsTest(){
+        int[] a = new int[]{1, 2, 3, 4, 5};
+        int[] b = new int[]{1, 2, 3, 4, 6};
+
+        ArrayDeque<int[]> L1 = new ArrayDeque<>();
+        ArrayDeque<int[]> L2 = new ArrayDeque<>();
+
+        L1.addFirst(a);
+        L1.addFirst(b);
+        L2.addFirst(a);
+        L2.addFirst(b);
+
+        assertTrue("should be equal", L1.equals(L2));
+
     }
 
     /*@Test

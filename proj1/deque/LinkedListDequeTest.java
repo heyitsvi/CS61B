@@ -86,7 +86,25 @@ public class LinkedListDequeTest {
             M.addFirst(1);
         }
 
-        assertEquals(true, L.equals(M));
+        assertTrue("should be equal", L.equals(M));
+    }
+
+    /* Tests for deep equality */
+    @Test
+    public void deepEqualsTest(){
+        int[] a = new int[]{1, 2, 3, 4, 5};
+        int[] b = new int[]{1, 2, 3, 4, 6};
+
+        LinkedListDeque<int[]> L1 = new LinkedListDeque<>();
+        LinkedListDeque<int[]> L2 = new LinkedListDeque<>();
+
+        L1.addFirst(a);
+        L1.addFirst(b);
+        L2.addFirst(a);
+        L2.addFirst(b);
+
+        assertTrue("should be equal", L1.equals(L2));
+
     }
 
     @Test
@@ -121,7 +139,7 @@ public class LinkedListDequeTest {
     @Test
     /* Add large number of elements to deque; check if order is correct. */
     public void bigLLDequeTest() {
-        //ystem.out.println("Make sure to uncomment the lines below (and delete this print statement).");
+        //System.out.println("Make sure to uncomment the lines below (and delete this print statement).");
         LinkedListDeque<Integer> lld1 = new LinkedListDeque<Integer>();
         for (int i = 0; i < 1000000; i++) {
             lld1.addLast(i);
