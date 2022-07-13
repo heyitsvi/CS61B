@@ -135,6 +135,9 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
         T item;
 
         if (nextFirst < items.length - 1) {
+            /*if(nextFirst < nextLast){
+                nextLast -= 1;
+            }*/
             item = items[nextFirst + 1];
             items[nextFirst + 1] = null;
             nextFirst += 1;
@@ -181,15 +184,22 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
     @Override
     public T get(int i) {
 
-        if(i < 0 || i > size){
+        if (i < 0 || i > size) {
             return null;
         }
 
-        if(nextLast == 0){
+        if (nextLast == 0) {
             return items[items.length - 1 - i];
         }
-        return items[i];
-    };
+
+        if (nextLast < nextFirst) {
+            return items[i];
+        } else if (nextFirst < nextLast && nextFirst >= 0) {
+            return items[nextFirst + 1];
+        } else {
+            return items[i];
+        }
+    }
 
 
     @Override
@@ -232,5 +242,27 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
             }
         }
         return true;
+    }
+
+    public static void main(String[] args) {
+        ArrayDeque<Integer> L = new ArrayDeque<>();
+        L.addLast(0);
+        L.get(0);
+        L.removeFirst();
+        L.addFirst(3);
+        L.addLast(4);
+        L.get(1) ;
+        L.get(0);
+        L.removeLast();
+        L.removeLast();
+        L.addLast(9);
+        L.removeFirst();
+        L.addFirst(11);
+        L.addLast(12);
+        L.addLast(13);
+        System.out.println(L.get(1));
+        L.removeFirst();
+        L.removeLast();
+        System.out.println(L.get(0));
     }
 }
