@@ -180,6 +180,14 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
 
     @Override
     public T get(int i) {
+
+        if(i < 0 || i > size){
+            return null;
+        }
+
+        if(nextLast == 0){
+            return items[items.length - 1 - i];
+        }
         return items[i];
     };
 
