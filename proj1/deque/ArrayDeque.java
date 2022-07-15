@@ -32,8 +32,20 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
             return pos < size;
         }
 
+        private T getValueAtPos(int i) {
+            if ((nextFirst == items.length - 1 || nextFirst == -1) && nextLast > 0) {
+                return items[i];
+            } else {
+                int index = nextFirst + 1 + i;
+                if (index > items.length - 1) {
+                    index = index % (items.length);
+                }
+                return items[index];
+            }
+        }
+
         public T next() {
-            T item = items[pos];
+            T item = getValueAtPos(pos);
             pos += 1;
             return item;
         }
@@ -196,19 +208,6 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
             return null;
         }
 
-        /*if ((nextFirst == items.length - 1 || nextFirst == -1) && nextLast > 0) {
-            return items[i];
-        } else if (nextLast == 0 && nextFirst <= items.length - 1 && !this.wrapped) {
-            return items[items.length - 1 - i];
-        } else {
-            int index = nextFirst + 1 + i;
-
-            if (index > items.length - 1) {
-                index = index % (items.length);
-            }
-            return items[index];
-        }*/
-
         if ((nextFirst == items.length - 1 || nextFirst == -1) && nextLast > 0) {
             return items[i];
         } else {
@@ -266,44 +265,16 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
 
     /*public static void main(String[] args) {
         ArrayDeque<Integer> L = new ArrayDeque<>();
-
-        /*L.addFirst(0);
-        L.removeFirst();     //==> 0
+        //Iterator<Integer> iter = L.iterator();
         L.addFirst(2);
-        L.removeFirst();     //==> 2
-        L.addLast(4);
-        L.removeFirst();     //==> 4
-        L.addFirst(6);
-        L.removeLast();      //==> 6
-        L.addFirst(8);
-        System.out.println(L.get(0));*/
-
-         /*L.addFirst(0);
-         L.removeLast();    //  ==> 0
-         L.addLast(2);
-         L.removeLast();    //  ==> 2
-         L.addFirst(4);
-         L.removeLast();    //  ==> 4
-         L.addLast(6);
-         System.out.println(L.get(0));     // ==> 6
-         L.addLast(8);
-         L.addLast(9);
-         System.out.println(L.get(0));     // ==> 6
-         L.addFirst(11);
-         System.out.println(L.get(1));     // ==> 6
-         L.removeLast();     // ==> 9
-         System.out.println(L.get(0));*/     // ==> 8 X || 11
-
-        /*L.addLast(0);
-        L.addLast(1);
-        L.addFirst(2);
+        L.addFirst(1);
         L.addLast(3);
-        L.removeLast(); // ==> 3
-        L.removeLast(); //==>1
-        L.removeLast(); //==>0;
-        L.get(0); //==>2;
-        L.addFirst(8);
-        L.addFirst(9);
-        System.out.println(L.get(2)); } */
+        L.addLast(4);
+
+        for(int i: L){
+            System.out.println(i);
+        }
+
+    }*/
 }
 
