@@ -66,7 +66,7 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
 
     }
 
-    BSTNode node;
+    private BSTNode node;
 
     public BSTMap() {
         node = new BSTNode();
@@ -163,6 +163,17 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
 
         put(node, key, value);
     }
+
+    /*private void printInOrder(BSTNode N) {
+        if (N.isLeaf()) {
+            System.out.println(N.label() + );
+        }
+    }
+
+    public void printInOrder() {
+        printInOrder(node.left());
+        printInOrder(node.right());
+    }*/
 
     @Override
     public Set<K> keySet() {
