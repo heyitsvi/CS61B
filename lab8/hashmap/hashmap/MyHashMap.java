@@ -1,15 +1,13 @@
-package hashmap;
-
 import java.util.Collection;
-
+//package hashmap;
 /**
  *  A hash table-backed Map implementation. Provides amortized constant time
  *  access to elements via get(), remove(), and put() in the best case.
  *
  *  Assumes null keys will never be inserted, and does not resize down upon remove().
- *  @author YOUR NAME HERE
+ *  @author Vivek Singh
  */
-public class MyHashMap<K, V> implements Map61B<K, V> {
+public class MyHashMap<K, V> implements hashmap.Map61B<K, V> {
 
     /**
      * Protected helper class to store key/value pairs
