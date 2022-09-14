@@ -1,18 +1,24 @@
 # Gitlet Design Document
 
-**Name**:
+**Name**: Vivek Singh
 
 ## Classes and Data Structures
 
-### Class 1
+### Commit
 
 #### Fields
 
 1. Field 1
 2. Field 2
 
+### Tree
 
-### Class 2
+#### Fields
+
+1. Field 1
+2. Field 2
+
+### Repository
 
 #### Fields
 
