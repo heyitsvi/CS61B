@@ -2,14 +2,15 @@ package gitlet;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import static gitlet.Utils.*;
 
 // TODO: any imports you need here
 
 /** Represents a gitlet repository.
- *  TODO: It's a good idea to give a description here of what else this Class does at a high level.
  *  Repository contains all of the operational commands in Gitlet.
  *  Includes methods for setting up the .gitlet directory structure and staging area.
  *
@@ -106,9 +107,10 @@ public class Repository {
     }
 
     /** Clear the staging area by removing all the (fileName : SHA val) mappings */
-    public void clearStagingArea() {
+    public static void clearStagingArea() {
         gitlet.Tree stagingTree = readObject(INDEX, gitlet.Tree.class);
         stagingTree.map.clear();
+        writeObject(INDEX, stagingTree);
     }
 
     /** Check if the staging area is empty */
@@ -124,14 +126,10 @@ public class Repository {
     }*/
 
     public static boolean checkFileExistsInLatestCommit(String fileName, String SHA) {
-        String shaInMaster = readContentsAsString(MASTER);
+        String shaInMaster = returnMasterPointer();
         gitlet.Tree latestCommitTreeObj = getLatestCommitTreeObj(shaInMaster);
 
-        /*if (!commitContainsFile(latestCommitTreeObj, fileName)) {
-            return false;
-        }*/
-
-        if (latestCommitTreeObj == null || !latestCommitTreeObj.map.containsKey(SHA)) {
+        if (latestCommitTreeObj == null || !latestCommitTreeObj.map.containsKey(fileName)) {
             return false;
         }
 
@@ -145,15 +143,15 @@ public class Repository {
         byte[] serialisedBlob = serialize(getContentsFromFile(fileName));
         String blobSHA = sha1(serialisedBlob);
 
+        //System.out.println("Is Index empty " + isIndexEmpty());
         if (isIndexEmpty()) {
             boolean fileExists = checkFileExistsInLatestCommit(fileName, blobSHA);
+            //System.out.println("File exists " + fileExists);
 
             if (fileExists) {
                 System.exit(0);
             }
         }
-
-
 
         if (!indexObj.map.containsKey(fileName) || !indexObj.map.get(fileName).equals(blobSHA)){
             File blobObjFile = createBlobObj(serialisedBlob);
@@ -165,6 +163,64 @@ public class Repository {
 
     }
 
+    public static gitlet.Tree mergeObjs(gitlet.Tree o1,gitlet.Tree o2) {
+        gitlet.Tree t = gitlet.Tree.createTree();
+        if (o1 == null) {
+            t.map.putAll(o2.map);
+            return t;
+        }
+
+        t.map.putAll(o1.map);
+        t.map.putAll(o2.map);
+        return t;
+    }
+    public static void createANewCommit(String msg) throws IOException {
+        String prevCommitSHA = returnMasterPointer();
+        //gitlet.Commit prevCommit = getLatestCommitObj(prevCommitSHA);
+        gitlet.Tree prevCommitTreeObj = getLatestCommitTreeObj(prevCommitSHA);
+        gitlet.Tree indexTreeObj = readObject(INDEX, gitlet.Tree.class);
+
+
+        gitlet.Tree newTreeObj = mergeObjs(prevCommitTreeObj, indexTreeObj);
+        byte[] serialiseTreeObj = serialize(newTreeObj);
+        String newObjSHA = sha1(serialiseTreeObj);
+
+        File path = createTreeObj(serialiseTreeObj);
+        writeObject(path, newTreeObj);
+
+        gitlet.Commit newCommit = gitlet.Commit.createCommit(msg, prevCommitSHA, new Date(), newObjSHA);
+        byte[] serialisedCommit = serialize(newCommit);
+
+        File newCommitFile = createCommitObj(serialisedCommit);
+        writeObject(newCommitFile, newCommit);
+
+        updateMaster(serialisedCommit);
+        clearStagingArea();
+    }
+
+    public static String generateLogMsg(gitlet.Commit c) {
+        String commit = sha1(serialize(c));
+        String msg = c.getMsg();
+        Date date = c.getDate();
+
+        return "=== \n" +
+                "commit " + commit + "\n" +
+                "Date: " + date + "\n" +
+                msg + "\n";
+    }
+
+    public static void printLog() {
+        String prevCommitSHA = returnMasterPointer();
+
+        gitlet.Commit prevCommitObj = getLatestCommitObj(prevCommitSHA);
+
+        while (prevCommitObj.getParent() != null) {
+            System.out.println(generateLogMsg(prevCommitObj));
+            prevCommitObj = getLatestCommitObj(prevCommitObj.getParent());
+        }
+        System.out.println(generateLogMsg(prevCommitObj));
+    }
+
 
     /** Updates Master to point to the latest commit
      * @param c The commit object you want the master to point at.
@@ -172,6 +228,11 @@ public class Repository {
     public static void updateMaster(Object c) {
         String sha = sha1(c);
         writeContents(MASTER, sha);
+        updateHEAD(sha);
+    }
+
+    public static void updateHEAD(String sha) {
+        writeContents(HEAD, sha);
     }
 
     public static String returnMasterPointer() {
@@ -254,6 +315,6 @@ public class Repository {
         updateMaster(serialisedCommit);
 
         /* Save the commit object in objects/commits dir. */
-        writeObject(f, serialisedCommit);
+        writeObject(f, c);
     }
 }

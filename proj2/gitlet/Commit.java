@@ -44,12 +44,24 @@ public class Commit implements Serializable {
         return this.parent;
     }
 
+    String getMsg() {
+        return this.message;
+    }
+
+    Date getDate() {
+        return this.date;
+    }
+
     String getTree() {
         return this.tree;
     }
 
     static Commit initialCommit () {
         return new Commit("initial commit", null, new Date(0), null);
+    }
+
+    static Commit createCommit(String message, String parent, Date date, String tree) {
+        return new Commit(message, parent, date, tree);
     }
 
     /*static void saveCommit (gitlet.Commit c, File dir) {

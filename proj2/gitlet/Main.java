@@ -64,7 +64,33 @@ public class Main {
                     System.out.println("Please enter a commit message.");
                     System.exit(0);
                 }
+
+                gitlet.Repository.createANewCommit(args[1]);
+
                 break;
+            case "rm" :
+                validateNumArgs("rm", args, 2);
+
+                if (!gitlet.Repository.checkGitDirExists()) {
+                    System.out.println("Not in an initialized Gitlet directory.");
+                    System.exit(0);
+                }
+
+                if (!gitlet.Repository.checkFileExists(args[1])) {
+                    System.out.println("File does not exist.");
+                    System.exit(0);
+                }
+
+            case "log" :
+                validateNumArgs("log", args, 1);
+                if (!gitlet.Repository.checkGitDirExists()) {
+                    System.out.println("Not in an initialized Gitlet directory.");
+                    System.exit(0);
+                }
+
+                gitlet.Repository.printLog();
+
+
         }
     }
 
