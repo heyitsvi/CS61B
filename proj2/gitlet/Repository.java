@@ -256,6 +256,38 @@ public class Repository {
         }
         System.out.println(generateLogMsg(prevCommitObj));
     }
+    /** Get the list of all commit files in lexicographical order and print the commits */
+    public static void printAllCommits() {
+        List<String> files = plainFilenamesIn(COMMIT_DIR);
+
+        for (String file : files) {
+            File f = join(COMMIT_DIR, file);
+            gitlet.Commit commitObj = readObject(join(COMMIT_DIR, file), gitlet.Commit.class);
+            System.out.println(generateLogMsg(commitObj));
+        }
+    }
+    /** Get the list of all commit files in lexicographical order and print the commits
+     * that contain the specified msg.
+     * @param msg The msg to search for
+     * */
+    public static void findMsgInCommits(String msg) {
+        List<String> files = plainFilenamesIn(COMMIT_DIR);
+        boolean flag = false;
+        for (String file : files) {
+            File f = join(COMMIT_DIR, file);
+            gitlet.Commit commitObj = readObject(join(COMMIT_DIR, file), gitlet.Commit.class);
+
+            if (commitObj.getMsg().equals(msg)) {
+                System.out.println(file);
+                flag = true;
+            }
+        }
+
+        if (!flag) {
+            System.out.println("Found no commit with that message.");
+        }
+
+    }
 
 
     /** Updates Master to point to the latest commit

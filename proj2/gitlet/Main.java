@@ -28,6 +28,7 @@ public class Main {
 
                 gitlet.Repository.setupGitlet();
                 break;
+
             case "add":
                 validateNumArgs("add", args, 2);
 
@@ -47,6 +48,7 @@ public class Main {
                     gitlet.Repository.addToIndex(args[1]);
                 }
                 break;
+
             case "commit":
                 validateNumArgs("commit", args, 2);
 
@@ -66,8 +68,8 @@ public class Main {
                 }
 
                 gitlet.Repository.createANewCommit(args[1]);
-
                 break;
+
             case "rm" :
                 validateNumArgs("rm", args, 2);
 
@@ -88,6 +90,7 @@ public class Main {
 
                 gitlet.Repository.removeFile(args[1]);
                 break;
+
             case "log" :
                 validateNumArgs("log", args, 1);
                 if (!gitlet.Repository.checkGitDirExists()) {
@@ -96,7 +99,30 @@ public class Main {
                 }
 
                 gitlet.Repository.printLog();
+                break;
 
+            case "global-log" :
+                validateNumArgs("global-log", args, 1);
+                if (!gitlet.Repository.checkGitDirExists()) {
+                    System.out.println("Not in an initialized Gitlet directory.");
+                    System.exit(0);
+                }
+                gitlet.Repository.printAllCommits();
+                break;
+            case "find" :
+                validateNumArgs("find", args, 2);
+                if (!gitlet.Repository.checkGitDirExists()) {
+                    System.out.println("Not in an initialized Gitlet directory.");
+                    System.exit(0);
+                }
+                gitlet.Repository.findMsgInCommits(args[1]);
+            case "status" :
+                validateNumArgs("status", args, 1);
+                if (!gitlet.Repository.checkGitDirExists()) {
+                    System.out.println("Not in an initialized Gitlet directory.");
+                    System.exit(0);
+                }
+                //gitlet.Repository.printStatus();
                 break;
         }
     }
