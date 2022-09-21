@@ -80,7 +80,14 @@ public class Main {
                     System.out.println("File does not exist.");
                     System.exit(0);
                 }
+                if (!gitlet.Repository.fileExistsInIndex(args[1])
+                        && !gitlet.Repository.fileInHEADCommit(args[1])) {
+                    System.out.println("No reason to remove the file.");
+                    System.exit(0);
+                }
 
+                gitlet.Repository.removeFile(args[1]);
+                break;
             case "log" :
                 validateNumArgs("log", args, 1);
                 if (!gitlet.Repository.checkGitDirExists()) {
@@ -90,7 +97,7 @@ public class Main {
 
                 gitlet.Repository.printLog();
 
-
+                break;
         }
     }
 

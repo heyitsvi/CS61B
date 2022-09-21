@@ -4,11 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 import static gitlet.Utils.*;
-
-// TODO: any imports you need here
 
 /** Represents a gitlet repository.
  *  Repository contains all of the operational commands in Gitlet.
@@ -54,6 +52,29 @@ public class Repository {
         listOfFileNamesCWD = plainFilenamesIn(CWD);
 
         return listOfFileNamesCWD.contains(fileName);
+    }
+
+    /** Check if the staging area is empty */
+    public static boolean isIndexEmpty() {
+        gitlet.Tree stagingTree = readObject(INDEX, gitlet.Tree.class);
+        return stagingTree.map.isEmpty();
+    }
+
+    /** Checks in Index to see if the file has been staged */
+    public static boolean fileExistsInIndex(String fileName) {
+        gitlet.Tree t = readObject(INDEX, gitlet.Tree.class);
+        return t.map.containsKey(fileName);
+    }
+    /** Check if the same file (i.e.with the same SHA val) exists in the latest commit. */
+    public static boolean sameFileInLatestCommit(String fileName, String SHA) {
+        String shaInMaster = returnHEADPointer();
+        gitlet.Tree latestCommitTreeObj = getLatestCommitTreeObj(shaInMaster);
+
+        if (latestCommitTreeObj == null || !latestCommitTreeObj.map.containsKey(fileName)) {
+            return false;
+        }
+
+        return latestCommitTreeObj.map.get(fileName).equals(SHA);
     }
 
     /** Create an object file inside Gitlet with the file name equal to the sha value of its contents.
@@ -113,41 +134,18 @@ public class Repository {
         writeObject(INDEX, stagingTree);
     }
 
-    /** Check if the staging area is empty */
-    public static boolean isIndexEmpty() {
-        gitlet.Tree stagingTree = readObject(INDEX, gitlet.Tree.class);
-        return stagingTree.map.isEmpty();
-    }
-
-    /*public static boolean commitContainsFile(gitlet.Tree t, String fileName) {
-        if (!(t == null)) return true;
-        assert t != null;
-        return t.map.containsKey(fileName);
-    }*/
-
-    public static boolean checkFileExistsInLatestCommit(String fileName, String SHA) {
-        String shaInMaster = returnMasterPointer();
-        gitlet.Tree latestCommitTreeObj = getLatestCommitTreeObj(shaInMaster);
-
-        if (latestCommitTreeObj == null || !latestCommitTreeObj.map.containsKey(fileName)) {
-            return false;
-        }
-
-        return latestCommitTreeObj.map.get(fileName).equals(SHA);
-
-    }
-
+    /** Add file to INDEX unless the file remains unchanged from previous commit
+     * @param fileName name of the file
+     * @throws IOException
+     */
     public static void addToIndex(String fileName) throws IOException {
         gitlet.Tree indexObj = readObject(INDEX, gitlet.Tree.class);
 
         byte[] serialisedBlob = serialize(getContentsFromFile(fileName));
         String blobSHA = sha1(serialisedBlob);
 
-        //System.out.println("Is Index empty " + isIndexEmpty());
         if (isIndexEmpty()) {
-            boolean fileExists = checkFileExistsInLatestCommit(fileName, blobSHA);
-            //System.out.println("File exists " + fileExists);
-
+            boolean fileExists = sameFileInLatestCommit(fileName, blobSHA);
             if (fileExists) {
                 System.exit(0);
             }
@@ -159,7 +157,6 @@ public class Repository {
             indexObj.map.put(fileName, blobSHA);
             writeObject(INDEX, indexObj);
         }
-
 
     }
 
@@ -175,10 +172,10 @@ public class Repository {
         return t;
     }
     public static void createANewCommit(String msg) throws IOException {
-        String prevCommitSHA = returnMasterPointer();
-        //gitlet.Commit prevCommit = getLatestCommitObj(prevCommitSHA);
+        String prevCommitSHA = returnHEADPointer();
         gitlet.Tree prevCommitTreeObj = getLatestCommitTreeObj(prevCommitSHA);
         gitlet.Tree indexTreeObj = readObject(INDEX, gitlet.Tree.class);
+        removeFilesFromCommit(indexTreeObj.removeSet, prevCommitTreeObj);
 
 
         gitlet.Tree newTreeObj = mergeObjs(prevCommitTreeObj, indexTreeObj);
@@ -194,8 +191,47 @@ public class Repository {
         File newCommitFile = createCommitObj(serialisedCommit);
         writeObject(newCommitFile, newCommit);
 
-        updateMaster(serialisedCommit);
+        updateActiveBranch(serialisedCommit);
         clearStagingArea();
+    }
+
+    public static boolean fileInHEADCommit(String fileName) {
+        gitlet.Tree latestCommitTreeObj = getLatestCommitTreeObj(returnHEADPointer());
+        if (latestCommitTreeObj == null) {
+            return false;
+        }
+        return latestCommitTreeObj.map.containsKey(fileName);
+    }
+
+    public static void removeFilesFromCommit(Set<String> removeFiles, gitlet.Tree commitTree) {
+        for (String file : removeFiles) {
+            commitTree.map.remove(file);
+        }
+    }
+
+    public static String shaOfFile(String fileName) {
+        File f = join(CWD, fileName);
+        return sha1(readContents(f));
+    }
+
+    /** Unstage the file if it is currently staged for addition.
+     *  If the file is tracked in the current commit, stage it for removal
+     *  and remove the file from the working directory if the user has not already done so.
+     */
+
+    public static void removeFile(String fileName) {
+        gitlet.Tree t = readObject(INDEX, gitlet.Tree.class);
+
+        if (fileInHEADCommit(fileName)) {
+            t.removeSet.add(fileName);
+            restrictedDelete(join(CWD, fileName));
+        }
+
+        if (fileExistsInIndex(fileName)) {
+            t.map.remove(fileName);
+        }
+
+        writeObject(INDEX, t);
     }
 
     public static String generateLogMsg(gitlet.Commit c) {
@@ -210,7 +246,7 @@ public class Repository {
     }
 
     public static void printLog() {
-        String prevCommitSHA = returnMasterPointer();
+        String prevCommitSHA = returnHEADPointer();
 
         gitlet.Commit prevCommitObj = getLatestCommitObj(prevCommitSHA);
 
@@ -228,15 +264,24 @@ public class Repository {
     public static void updateMaster(Object c) {
         String sha = sha1(c);
         writeContents(MASTER, sha);
-        updateHEAD(sha);
     }
-
-    public static void updateHEAD(String sha) {
-        writeContents(HEAD, sha);
-    }
-
     public static String returnMasterPointer() {
         return readContentsAsString(MASTER);
+    }
+
+    public static void updateActiveBranch(Object c) {
+        String branch = getActiveBranch();
+        String sha = sha1(c);
+        writeContents(join(HEADS_DIR, branch), sha);
+    }
+
+    public static String getActiveBranch() {
+        return readContentsAsString(HEAD);
+    }
+
+    public static String returnHEADPointer() {
+        String branch = readContentsAsString(HEAD);
+        return readContentsAsString(join(HEADS_DIR, branch));
     }
 
     /*public static void createStagingTree() {
@@ -311,8 +356,10 @@ public class Repository {
 
         File f = createCommitObj(serialisedCommit);
 
+        writeContents(HEAD, "master");
+
         /* update master to point to latest commit. */
-        updateMaster(serialisedCommit);
+        updateActiveBranch(serialisedCommit);
 
         /* Save the commit object in objects/commits dir. */
         writeObject(f, c);
