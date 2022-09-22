@@ -80,26 +80,30 @@ public class Repository {
     /** Create an object file inside Gitlet with the file name equal to the sha value of its contents.
      * Can be for a commit, blob or tree object.
      **/
-    public static File createObjectFile(byte[] o, File dir) throws IOException {
+    public static File createObjectFile(byte[] o, File dir) {
         String sha = sha1(o);
         File shaObj = join(dir, sha);
-        shaObj.createNewFile();
+        try {
+            shaObj.createNewFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         return shaObj;
     }
 
     /** Create a commit obj file in the Commit DIR */
-    public static File createCommitObj(byte[] o) throws IOException {
+    public static File createCommitObj(byte[] o) {
         return createObjectFile(o, COMMIT_DIR);
     }
 
     /** Create a blob obj file in the Blob DIR */
-    public static File createBlobObj(byte[] o) throws IOException {
+    public static File createBlobObj(byte[] o) {
         return createObjectFile(o, BLOB_DIR);
     }
 
     /** Create a blob obj file in the Tree DIR */
-    public static File createTreeObj(byte[] o) throws IOException {
+    public static File createTreeObj(byte[] o) {
         return createObjectFile(o, TREE_DIR);
     }
 
@@ -136,9 +140,8 @@ public class Repository {
 
     /** Add file to INDEX unless the file remains unchanged from previous commit
      * @param fileName name of the file
-     * @throws IOException
      */
-    public static void addToIndex(String fileName) throws IOException {
+    public static void addToIndex(String fileName) {
         gitlet.Tree indexObj = readObject(INDEX, gitlet.Tree.class);
 
         byte[] serialisedBlob = serialize(getContentsFromFile(fileName));
@@ -171,7 +174,7 @@ public class Repository {
         t.map.putAll(o2.map);
         return t;
     }
-    public static void createANewCommit(String msg) throws IOException {
+    public static void createANewCommit(String msg) {
         String prevCommitSHA = returnHEADPointer();
         gitlet.Tree prevCommitTreeObj = getLatestCommitTreeObj(prevCommitSHA);
         gitlet.Tree indexTreeObj = readObject(INDEX, gitlet.Tree.class);
@@ -321,10 +324,14 @@ public class Repository {
     }*/
 
 
-    public static void setupStagingArea(String fileName) throws IOException {
+    public static void setupStagingArea(String fileName) {
 
         /* Create the index file in .gitlet dir. */
-        INDEX.createNewFile();
+        try {
+            INDEX.createNewFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         /* Create the Index (i.e. Staging) Tree object */
         gitlet.Tree indexObj =  gitlet.Tree.createTree();
@@ -364,10 +371,9 @@ public class Repository {
      *
      * Creates the initial commit
      * Creates the head, master references
-     * @throws IOException
      */
 
-    public static void setupGitlet() throws IOException {
+    public static void setupGitlet() {
 
         /* Initialise files and directories for gitlet. */
         GITLET_DIR.mkdir();
@@ -377,8 +383,16 @@ public class Repository {
         TREE_DIR.mkdir();
         REF_DIR.mkdir();
         HEADS_DIR.mkdir();
-        HEAD.createNewFile();
-        MASTER.createNewFile();
+        try {
+            HEAD.createNewFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            MASTER.createNewFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
         /* Create the first commit. */
         gitlet.Commit c = gitlet.Commit.initialCommit();
