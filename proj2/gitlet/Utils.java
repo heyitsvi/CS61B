@@ -105,7 +105,7 @@ class Utils {
     }
 
     /** Return the entire contents of FILE as a String.  FILE must
-     *  be a normal file.  Throws IllegalArgumentException
+     *  be a normal file.  Throws IllegalArgumentExceptions
      *  in case of problems. */
     static String readContentsAsString(File file) {
         return new String(readContents(file), StandardCharsets.UTF_8);

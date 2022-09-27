@@ -1,7 +1,4 @@
 package gitlet;
-import gitlet.Repository.*;
-
-import java.io.IOException;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author Vivek Singh
@@ -42,7 +39,7 @@ public class Main {
                     System.exit(0);
                 }
 
-                if(!gitlet.Repository.checkIndexExists()) {
+                if (!gitlet.Repository.checkIndexExists()) {
                     gitlet.Repository.setupStagingArea(args[1]);
                 } else {
                     gitlet.Repository.addToIndex(args[1]);
@@ -109,6 +106,7 @@ public class Main {
                 }
                 gitlet.Repository.printAllCommits();
                 break;
+
             case "find" :
                 validateNumArgs("find", args, 2);
                 if (!gitlet.Repository.checkGitDirExists()) {
@@ -116,13 +114,62 @@ public class Main {
                     System.exit(0);
                 }
                 gitlet.Repository.findMsgInCommits(args[1]);
+                break;
+
             case "status" :
                 validateNumArgs("status", args, 1);
                 if (!gitlet.Repository.checkGitDirExists()) {
                     System.out.println("Not in an initialized Gitlet directory.");
                     System.exit(0);
                 }
-                //gitlet.Repository.printStatus();
+
+                if (!gitlet.Repository.checkIndexExists()) {
+                    System.out.println("No files tracked yet.");
+                    System.exit(0);
+                }
+                gitlet.Repository.printStatus();
+                break;
+            case "branch" :
+                validateNumArgs("branch", args, 2);
+                if (!gitlet.Repository.checkGitDirExists()) {
+                    System.out.println("Not in an initialized Gitlet directory.");
+                    System.exit(0);
+                }
+
+                if (gitlet.Repository.branchExists(args[1])) {
+                    System.out.println("A branch with that name already exists.");
+                }
+
+                gitlet.Repository.createBranch(args[1]);
+                break;
+            case "checkout" :
+                //validateNumArgs("checkout", args, 2);
+                if (!gitlet.Repository.checkGitDirExists()) {
+                    System.out.println("Not in an initialized Gitlet directory.");
+                    System.exit(0);
+                }
+
+                if (!gitlet.Repository.isIndexEmpty()) {
+                    System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                    System.exit(0);
+                }
+
+
+                if (args[1].equals("--") && args.length == 3) {
+                    gitlet.Repository.checkoutFile(gitlet.Repository.returnHEADPointer(),args[2]);
+                } else if (args[2].equals("--") && args.length == 4) {
+                    gitlet.Repository.checkoutFile(args[1], args[3]);
+                } else {
+                    if (!gitlet.Repository.branchExists(args[1])) {
+                        System.out.println("No such branch exists.");
+                        System.exit(0);
+                    }
+                    if (gitlet.Repository.isCurrentBranch(args[1])) {
+                        System.out.println("No need to checkout the current branch.");
+                        System.exit(0);
+                    }
+                    gitlet.Repository.changeActiveBranch(args[1]);
+                }
                 break;
         }
     }
@@ -139,6 +186,19 @@ public class Main {
     public static void validateNumArgs(String cmd, String[] args, int n) {
         if (args.length != n) {
             System.out.println("Incorrect operands.");
+            System.exit(0);
+        }
+    }
+
+    /** Checks if the predicate is equal to the expected value and if not then print the error
+     * msg and exit.
+     * @param pred The result of a function call
+     * @param expected Expected return val of the predicate function
+     * @param msg Error msg that will be displayed before exiting
+     */
+    public static void checkFor(boolean pred, boolean expected, String msg) {
+        if (pred != expected) {
+            System.out.println(msg);
             System.exit(0);
         }
     }

@@ -2,6 +2,7 @@ package gitlet;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -47,6 +48,13 @@ public class Repository {
         return INDEX.exists();
     }
 
+    /** Check if the same branch already exists in the directory */
+    public static boolean branchExists(String branch) {
+        /**List<String> listOfFileNames = plainFilenamesIn(HEADS_DIR);
+        return listOfFileNames.contains(branch);*/
+        return fileExistsInDir(branch, HEADS_DIR);
+    }
+
     /** Check if File exists in CWD */
     public static boolean checkFileExists(String fileName) {
         listOfFileNamesCWD = plainFilenamesIn(CWD);
@@ -58,6 +66,11 @@ public class Repository {
     public static boolean isIndexEmpty() {
         gitlet.Tree stagingTree = readObject(INDEX, gitlet.Tree.class);
         return stagingTree.map.isEmpty();
+    }
+
+    /** Check if the checkout branch is the current active branch */
+    public static boolean isCurrentBranch(String branch) {
+        return getActiveBranch().equals(branch);
     }
 
     /** Checks in Index to see if the file has been staged */
@@ -80,7 +93,7 @@ public class Repository {
     /** Create an object file inside Gitlet with the file name equal to the sha value of its contents.
      * Can be for a commit, blob or tree object.
      **/
-    public static File createObjectFile(byte[] o, File dir) {
+    public static File createObjectFile(Object o, File dir) {
         String sha = sha1(o);
         File shaObj = join(dir, sha);
         try {
@@ -98,7 +111,7 @@ public class Repository {
     }
 
     /** Create a blob obj file in the Blob DIR */
-    public static File createBlobObj(byte[] o) {
+    public static File createBlobObj(Object o) {
         return createObjectFile(o, BLOB_DIR);
     }
 
@@ -144,8 +157,9 @@ public class Repository {
     public static void addToIndex(String fileName) {
         gitlet.Tree indexObj = readObject(INDEX, gitlet.Tree.class);
 
-        byte[] serialisedBlob = serialize(getContentsFromFile(fileName));
-        String blobSHA = sha1(serialisedBlob);
+        String contents = readContentsAsString(join(CWD,fileName));
+
+        String blobSHA = sha1(contents);
 
         if (isIndexEmpty()) {
             boolean fileExists = sameFileInLatestCommit(fileName, blobSHA);
@@ -155,8 +169,8 @@ public class Repository {
         }
 
         if (!indexObj.map.containsKey(fileName) || !indexObj.map.get(fileName).equals(blobSHA)){
-            File blobObjFile = createBlobObj(serialisedBlob);
-            writeObject(blobObjFile, serialisedBlob);
+            File blobObjFile = createBlobObj(contents);
+            writeContents(blobObjFile, contents);
             indexObj.map.put(fileName, blobSHA);
             writeObject(INDEX, indexObj);
         }
@@ -198,6 +212,56 @@ public class Repository {
         clearStagingArea();
     }
 
+    /** Creates a new branch in the HEADS_DIR */
+    public static void createBranch(String branch) {
+        String activeBranchID = returnHEADPointer();
+
+        File newBranch = join(HEADS_DIR, branch);
+
+        try {
+            newBranch.createNewFile();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        writeContents(newBranch, activeBranchID);
+
+    }
+
+    public static void overwriteFile(String fileName, String savedFile, File DIR) {
+        File f = join(DIR, fileName);
+        //byte[] storedFile = readContents(join(BLOB_DIR, savedFile));
+        String contents = readContentsAsString(join(BLOB_DIR, savedFile));
+        writeContents(f, contents);
+    }
+
+    public static boolean fileExistsInDir(String fileName, File dir) {
+        File f =  join(dir, fileName);
+        return f.exists();
+    }
+    public static void checkoutFile(String commitID, String fileName) {
+        if (!fileExistsInDir(commitID, COMMIT_DIR)) {
+            System.out.println("No commit with that id exists.");
+            System.exit(0);
+        }
+
+        gitlet.Commit commitObj = readObject(join(COMMIT_DIR, commitID), gitlet.Commit.class);
+        gitlet.Tree commitTreeObj = readObject(join(TREE_DIR, commitObj.getTree()), gitlet.Tree.class);
+
+        if (commitTreeObj != null) {
+            if (commitTreeObj.map.containsKey(fileName)) {
+                overwriteFile(fileName, commitTreeObj.map.get(fileName), CWD);
+            } else {
+                System.out.println("File does not exist in that commit.");
+                System.exit(0);
+            }
+        }
+    }
+
+    public static void checkoutBranch(String branch) {
+        System.out.println("TODO");
+    }
+
     public static boolean fileInHEADCommit(String fileName) {
         gitlet.Tree latestCommitTreeObj = getLatestCommitTreeObj(returnHEADPointer());
         if (latestCommitTreeObj == null) {
@@ -206,10 +270,15 @@ public class Repository {
         return latestCommitTreeObj.map.containsKey(fileName);
     }
 
+    /** Remove the files from the commit if they are staged for removal
+     * @param removeFiles Set containing the names of the files that need to be removed.
+     * @param commitTree The Tree Object that
+     * */
     public static void removeFilesFromCommit(Set<String> removeFiles, gitlet.Tree commitTree) {
         for (String file : removeFiles) {
             commitTree.map.remove(file);
         }
+        removeFiles.clear();
     }
 
     public static String shaOfFile(String fileName) {
@@ -220,6 +289,7 @@ public class Repository {
     /** Unstage the file if it is currently staged for addition.
      *  If the file is tracked in the current commit, stage it for removal
      *  and remove the file from the working directory if the user has not already done so.
+     * @param fileName Name of the file that needs to be staged for removal.
      */
 
     public static void removeFile(String fileName) {
@@ -237,17 +307,31 @@ public class Repository {
         writeObject(INDEX, t);
     }
 
+    /** Format the date to the specified format
+     * @param d Date object that needs to formatted.
+     * */
+    public static String formatDate(Date d) {
+        SimpleDateFormat df = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z");
+        return df.format(d);
+    }
+
+    /** Generate the log msg from the commit object
+     * @param c Commit object for which details need to be displayed.
+     * @return Log Message
+     * */
     public static String generateLogMsg(gitlet.Commit c) {
         String commit = sha1(serialize(c));
         String msg = c.getMsg();
         Date date = c.getDate();
+        String formattedDate = formatDate(date);
 
         return "=== \n" +
                 "commit " + commit + "\n" +
-                "Date: " + date + "\n" +
+                "Date: " + formattedDate + "\n" +
                 msg + "\n";
     }
 
+    /** Traverse commits starting from the HEAD commit to the initial commit and display their log msg */
     public static void printLog() {
         String prevCommitSHA = returnHEADPointer();
 
@@ -259,6 +343,7 @@ public class Repository {
         }
         System.out.println(generateLogMsg(prevCommitObj));
     }
+
     /** Get the list of all commit files in lexicographical order and print the commits */
     public static void printAllCommits() {
         List<String> files = plainFilenamesIn(COMMIT_DIR);
@@ -269,6 +354,7 @@ public class Repository {
             System.out.println(generateLogMsg(commitObj));
         }
     }
+
     /** Get the list of all commit files in lexicographical order and print the commits
      * that contain the specified msg.
      * @param msg The msg to search for
@@ -292,37 +378,77 @@ public class Repository {
 
     }
 
+    /** Display general into about the repository like branches, staged files, files staged for removal
+     *  modified files and untracked files.
+     */
+    public static void printStatus() {
+        List<String> files = plainFilenamesIn(HEADS_DIR);
+        String branch = getActiveBranch();
+        System.out.println("=== Branches ===");
+        for (String file : files) {
+            if (file.equals(branch)) {
+                System.out.println("*" + file);
+            } else {
+                System.out.println(file);
+            }
+        }
+        System.out.println(" ");
+        gitlet.Tree latestObj = readObject(INDEX, gitlet.Tree.class);
+        System.out.println("=== Staged Files ===");
+        if (latestObj != null) {
+            for (String key : latestObj.map.keySet()) {
+                System.out.println(key);
+            }
+        }
+        System.out.println(" ");
+        System.out.println("=== Removed Files ===");
+        if (latestObj != null) {
+            for (String key : latestObj.removeSet) {
+                System.out.println(key);
+            }
+        }
+        System.out.println(" ");
+        System.out.println("=== Modifications Not Staged For Commit ===");
+        System.out.println(" ");
+        System.out.println("=== Untracked Files ===");
+        System.out.println(" ");
+    }
+
 
     /** Updates Master to point to the latest commit
      * @param c The commit object you want the master to point at.
      * */
-    public static void updateMaster(Object c) {
+
+    /**public static void updateMaster(Object c) {
         String sha = sha1(c);
         writeContents(MASTER, sha);
     }
     public static String returnMasterPointer() {
         return readContentsAsString(MASTER);
-    }
+    }*/
 
+    /** Update the active branch to point to latest commit */
     public static void updateActiveBranch(Object c) {
         String branch = getActiveBranch();
         String sha = sha1(c);
         writeContents(join(HEADS_DIR, branch), sha);
     }
 
+    /** Checkout to the given Branch */
+    public static void changeActiveBranch(String branch) {
+        writeContents(HEAD, branch);
+    }
+
+    /** Get the branch that HEAD is pointing at */
     public static String getActiveBranch() {
         return readContentsAsString(HEAD);
     }
 
+    /** Return the commit id of the branch HEAD points at */
     public static String returnHEADPointer() {
         String branch = readContentsAsString(HEAD);
         return readContentsAsString(join(HEADS_DIR, branch));
     }
-
-    /*public static void createStagingTree() {
-        gitlet.Tree t =  gitlet.Tree.createTree();
-    }*/
-
 
     public static void setupStagingArea(String fileName) {
 
@@ -336,20 +462,18 @@ public class Repository {
         /* Create the Index (i.e. Staging) Tree object */
         gitlet.Tree indexObj =  gitlet.Tree.createTree();
 
-        /* Get the contents from file, serialise the contents and create a blob object */
-        byte[] serialisedBlob = serialize(getContentsFromFile(fileName));
+        String contents = readContentsAsString(join(CWD, fileName));
+        /* Get the contents from file, create a blob object and write contents to that object */
 
-        File blobObjFile = createBlobObj(serialisedBlob);
+        File blobObjFile = createBlobObj(contents);
 
-        writeObject(blobObjFile, serialisedBlob);
+        writeContents(blobObjFile, contents);
 
         /* Map the file name to the sha of the blob obj and write to INDEX */
 
-        String blobSHA = sha1(serialisedBlob);
+        String blobSHA = sha1(contents);
 
         indexObj.map.put(fileName, blobSHA);
-
-        //byte[] serialisedIndex = serialize(indexObj);
 
         writeObject(INDEX, indexObj);
 
