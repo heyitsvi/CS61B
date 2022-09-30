@@ -149,27 +149,28 @@ public class Main {
                     System.exit(0);
                 }
 
-                if (!gitlet.Repository.isIndexEmpty()) {
-                    System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
-                    System.exit(0);
-                }
-
-
-                if (args[1].equals("--") && args.length == 3) {
-                    gitlet.Repository.checkoutFile(gitlet.Repository.returnHEADPointer(),args[2]);
-                } else if (args[2].equals("--") && args.length == 4) {
-                    gitlet.Repository.checkoutFile(args[1], args[3]);
-                } else {
+                if (args.length == 2) {
                     if (!gitlet.Repository.branchExists(args[1])) {
                         System.out.println("No such branch exists.");
                         System.exit(0);
                     }
+
+                    if (!gitlet.Repository.isIndexEmpty()) {
+                        System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                        System.exit(0);
+                    }
+
                     if (gitlet.Repository.isCurrentBranch(args[1])) {
                         System.out.println("No need to checkout the current branch.");
                         System.exit(0);
                     }
-                    gitlet.Repository.changeActiveBranch(args[1]);
+                    gitlet.Repository.checkoutBranch(args[1]);
+                } else if (args.length == 3 && args[1].equals("--")) {
+                    gitlet.Repository.checkoutFile(gitlet.Repository.returnHEADPointer(), args[2]);
+                } else if (args[2].equals("--") && args.length == 4) {
+                    gitlet.Repository.checkoutFile(args[1], args[3]);
                 }
+
                 break;
         }
     }

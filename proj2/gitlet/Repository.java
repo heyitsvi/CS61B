@@ -126,22 +126,31 @@ public class Repository {
         return readContents(filePath);
     }
 
-    /** Get the latest commit obj */
-    public static gitlet.Commit getLatestCommitObj(String fileName) {
-        File filePath = join(COMMIT_DIR, fileName);
+    /** Get the commit object from a directory */
+    public static gitlet.Commit getCommitObj(String fileName, File DIR) {
+        File filePath = join(DIR, fileName);
         return readObject(filePath, gitlet.Commit.class);
     }
 
-    /** Get the tree object from the latest commit */
-    public static gitlet.Tree getLatestCommitTreeObj(String fileName) {
-        gitlet.Commit commitObj = getLatestCommitObj(fileName);
-        String treeSHA = commitObj.getTree();
+    /** Get the tree object from a commit */
+    public static gitlet.Tree getCommitTreeObj(gitlet.Commit c) {
+        String treeSHA = c.getTree();
 
         if (treeSHA == null) {
             return null;
         }
         File filePath = join(TREE_DIR,treeSHA);
         return readObject(filePath, gitlet.Tree.class);
+    }
+
+    /** Get the latest commit obj */
+    public static gitlet.Commit getLatestCommitObj(String fileName) {
+        return getCommitObj(fileName, COMMIT_DIR);
+    }
+
+    /** Get the tree object from the latest commit */
+    public static gitlet.Tree getLatestCommitTreeObj(String fileName) {
+        return getCommitTreeObj(getLatestCommitObj(fileName));
     }
 
     /** Clear the staging area by removing all the (fileName : SHA val) mappings */
@@ -188,6 +197,8 @@ public class Repository {
         t.map.putAll(o2.map);
         return t;
     }
+
+    /** Create a new commit with the given message */
     public static void createANewCommit(String msg) {
         String prevCommitSHA = returnHEADPointer();
         gitlet.Tree prevCommitTreeObj = getLatestCommitTreeObj(prevCommitSHA);
@@ -228,13 +239,14 @@ public class Repository {
 
     }
 
+    /** Overwrite the file in a directory with its previous version from a commit */
     public static void overwriteFile(String fileName, String savedFile, File DIR) {
         File f = join(DIR, fileName);
-        //byte[] storedFile = readContents(join(BLOB_DIR, savedFile));
         String contents = readContentsAsString(join(BLOB_DIR, savedFile));
         writeContents(f, contents);
     }
 
+    /** Check if the file exists in the given directory */
     public static boolean fileExistsInDir(String fileName, File dir) {
         File f =  join(dir, fileName);
         return f.exists();
@@ -257,11 +269,48 @@ public class Repository {
             }
         }
     }
+    public static void createFileWithContents(File fileName, File contentPath) {
+        try {
+            fileName.createNewFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
-    public static void checkoutBranch(String branch) {
-        System.out.println("TODO");
+        String contents = readContentsAsString(contentPath);
+
+        writeContents(fileName, contents);
     }
 
+    public static void checkoutBranch(String branch) {
+        String commitID = readContentsAsString(join(HEADS_DIR, branch));
+        gitlet.Tree branchTreeObj = getCommitTreeObj(getCommitObj(commitID, COMMIT_DIR));
+        gitlet.Tree latestTreeObj = getLatestCommitTreeObj(returnHEADPointer());
+        Set<String> trackedFiles = latestTreeObj.map.keySet();
+
+        if (branchTreeObj != null) {
+             Set<String> branchFiles = branchTreeObj.map.keySet();
+             List<String> listOfFiles = plainFilenamesIn(CWD);
+             for (String file : branchFiles) {
+                 if (listOfFiles.contains(file)) {
+                     overwriteFile(file, branchTreeObj.map.get(file), CWD);
+                 } else {
+                     String fileSHA = branchTreeObj.map.get(file);
+                     File contentPath = join(BLOB_DIR, fileSHA);
+                     createFileWithContents(join(CWD,file), contentPath);
+                 }
+             }
+
+            for (String file : trackedFiles) {
+                if (!branchFiles.contains(file)) {
+                    restrictedDelete(file);
+                }
+            }
+        }
+
+        clearStagingArea();
+        gitlet.Repository.changeActiveBranch(branch);
+    }
+    /** Check if the latest commit in the current branch tracks this file */
     public static boolean fileInHEADCommit(String fileName) {
         gitlet.Tree latestCommitTreeObj = getLatestCommitTreeObj(returnHEADPointer());
         if (latestCommitTreeObj == null) {
@@ -316,7 +365,7 @@ public class Repository {
     }
 
     /** Generate the log msg from the commit object
-     * @param c Commit object for which details need to be displayed.
+     * @param c Commit object that contains info to display.
      * @return Log Message
      * */
     public static String generateLogMsg(gitlet.Commit c) {
@@ -444,7 +493,7 @@ public class Repository {
         return readContentsAsString(HEAD);
     }
 
-    /** Return the commit id of the branch HEAD points at */
+    /** Return the most recent commit id of the branch HEAD points at */
     public static String returnHEADPointer() {
         String branch = readContentsAsString(HEAD);
         return readContentsAsString(join(HEADS_DIR, branch));
