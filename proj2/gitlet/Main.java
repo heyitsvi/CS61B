@@ -39,7 +39,7 @@ public class Main {
                     System.exit(0);
                 }
 
-                if (!gitlet.Repository.checkIndexExists()) {
+                if (!gitlet.Repository.indexExists()) {
                     gitlet.Repository.setupStagingArea(args[1]);
                 } else {
                     gitlet.Repository.addToIndex(args[1]);
@@ -54,7 +54,7 @@ public class Main {
                     System.exit(0);
                 }
 
-                if (gitlet.Repository.isIndexEmpty()) {
+                if (!gitlet.Repository.indexExists() || !gitlet.Repository.newFilesTracked()) {
                     System.out.println("No changes added to the commit.");
                     System.exit(0);
                 }
@@ -75,10 +75,6 @@ public class Main {
                     System.exit(0);
                 }
 
-                if (!gitlet.Repository.checkFileExists(args[1])) {
-                    System.out.println("File does not exist.");
-                    System.exit(0);
-                }
                 if (!gitlet.Repository.fileExistsInIndex(args[1])
                         && !gitlet.Repository.fileInHEADCommit(args[1])) {
                     System.out.println("No reason to remove the file.");
@@ -123,10 +119,6 @@ public class Main {
                     System.exit(0);
                 }
 
-                if (!gitlet.Repository.checkIndexExists()) {
-                    System.out.println("No files tracked yet.");
-                    System.exit(0);
-                }
                 gitlet.Repository.printStatus();
                 break;
             case "branch" :
@@ -143,7 +135,6 @@ public class Main {
                 gitlet.Repository.createBranch(args[1]);
                 break;
             case "checkout" :
-                //validateNumArgs("checkout", args, 2);
                 if (!gitlet.Repository.checkGitDirExists()) {
                     System.out.println("Not in an initialized Gitlet directory.");
                     System.exit(0);
@@ -169,9 +160,31 @@ public class Main {
                     gitlet.Repository.checkoutFile(gitlet.Repository.returnHEADPointer(), args[2]);
                 } else if (args[2].equals("--") && args.length == 4) {
                     gitlet.Repository.checkoutFile(args[1], args[3]);
+                } else {
+                    System.out.println("Incorrect operands.");
+                    System.exit(0);
                 }
 
                 break;
+            case "rm-branch" :
+                validateNumArgs("rm-branch", args, 2);
+
+                if (!gitlet.Repository.checkGitDirExists()) {
+                    System.out.println("Not in an initialized Gitlet directory.");
+                    System.exit(0);
+                }
+
+                if (!gitlet.Repository.branchExists(args[1])) {
+                    System.out.println("A branch with that name does not exist.");
+                    System.exit(0);
+                }
+
+                if (gitlet.Repository.isCurrentBranch(args[1])) {
+                    System.out.println("Cannot remove the current branch.");
+                    System.exit(0);
+                }
+
+                gitlet.Repository.removeBranch(args[1]);
         }
     }
 

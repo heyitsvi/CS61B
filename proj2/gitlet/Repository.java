@@ -36,15 +36,13 @@ public class Repository {
     public static final File INDEX = join(GITLET_DIR, "index");
     public static final File MASTER = join(HEADS_DIR, "master");
 
-    public static List<String> listOfFileNamesCWD;
-
     /** Check if a Git Directory already exists */
     public static boolean checkGitDirExists() {
         return GITLET_DIR.exists();
     }
 
     /** Check if Index (i.e Staging area) already exists */
-    public static boolean checkIndexExists() {
+    public static boolean indexExists() {
         return INDEX.exists();
     }
 
@@ -57,15 +55,25 @@ public class Repository {
 
     /** Check if File exists in CWD */
     public static boolean checkFileExists(String fileName) {
-        listOfFileNamesCWD = plainFilenamesIn(CWD);
+        List<String> listOfFileNamesCWD = plainFilenamesIn(CWD);
 
         return listOfFileNamesCWD.contains(fileName);
     }
+
 
     /** Check if the staging area is empty */
     public static boolean isIndexEmpty() {
         gitlet.Tree stagingTree = readObject(INDEX, gitlet.Tree.class);
         return stagingTree.map.isEmpty();
+    }
+
+    public static boolean filesStagedForRemovalEmpty() {
+        gitlet.Tree stagingTree = readObject(INDEX, gitlet.Tree.class);
+        return stagingTree.removeSet.isEmpty();
+    }
+
+    public static boolean newFilesTracked() {
+        return !(isIndexEmpty() && filesStagedForRemovalEmpty());
     }
 
     /** Check if the checkout branch is the current active branch */
@@ -90,7 +98,7 @@ public class Repository {
         return latestCommitTreeObj.map.get(fileName).equals(SHA);
     }
 
-    /** Create an object file inside Gitlet with the file name equal to the sha value of its contents.
+    /** Create an object file inside Gitlet with file name equal to the sha value of its contents.
      * Can be for a commit, blob or tree object.
      **/
     public static File createObjectFile(Object o, File dir) {
@@ -127,8 +135,8 @@ public class Repository {
     }
 
     /** Get the commit object from a directory */
-    public static gitlet.Commit getCommitObj(String fileName, File DIR) {
-        File filePath = join(DIR, fileName);
+    public static gitlet.Commit getCommitObj(String fileName, File dir) {
+        File filePath = join(dir, fileName);
         return readObject(filePath, gitlet.Commit.class);
     }
 
@@ -139,7 +147,7 @@ public class Repository {
         if (treeSHA == null) {
             return null;
         }
-        File filePath = join(TREE_DIR,treeSHA);
+        File filePath = join(TREE_DIR, treeSHA);
         return readObject(filePath, gitlet.Tree.class);
     }
 
@@ -166,7 +174,7 @@ public class Repository {
     public static void addToIndex(String fileName) {
         gitlet.Tree indexObj = readObject(INDEX, gitlet.Tree.class);
 
-        String contents = readContentsAsString(join(CWD,fileName));
+        String contents = readContentsAsString(join(CWD, fileName));
 
         String blobSHA = sha1(contents);
 
@@ -186,7 +194,7 @@ public class Repository {
 
     }
 
-    public static gitlet.Tree mergeObjs(gitlet.Tree o1,gitlet.Tree o2) {
+    public static gitlet.Tree mergeObjs(gitlet.Tree o1, gitlet.Tree o2) {
         gitlet.Tree t = gitlet.Tree.createTree();
         if (o1 == null) {
             t.map.putAll(o2.map);
@@ -258,11 +266,11 @@ public class Repository {
         }
 
         gitlet.Commit commitObj = readObject(join(COMMIT_DIR, commitID), gitlet.Commit.class);
-        gitlet.Tree commitTreeObj = readObject(join(TREE_DIR, commitObj.getTree()), gitlet.Tree.class);
+        gitlet.Tree treeObj = readObject(join(TREE_DIR, commitObj.getTree()), gitlet.Tree.class);
 
-        if (commitTreeObj != null) {
-            if (commitTreeObj.map.containsKey(fileName)) {
-                overwriteFile(fileName, commitTreeObj.map.get(fileName), CWD);
+        if (treeObj != null) {
+            if (treeObj.map.containsKey(fileName)) {
+                overwriteFile(fileName, treeObj.map.get(fileName), CWD);
             } else {
                 System.out.println("File does not exist in that commit.");
                 System.exit(0);
@@ -318,6 +326,9 @@ public class Repository {
         }
         return latestCommitTreeObj.map.containsKey(fileName);
     }
+    public static void removeBranch(String branch) {
+        restrictedDelete(join(HEADS_DIR, branch));
+    }
 
     /** Remove the files from the commit if they are staged for removal
      * @param removeFiles Set containing the names of the files that need to be removed.
@@ -343,10 +354,15 @@ public class Repository {
 
     public static void removeFile(String fileName) {
         gitlet.Tree t = readObject(INDEX, gitlet.Tree.class);
+        List<String> listOfFiles = plainFilenamesIn(CWD);
 
         if (fileInHEADCommit(fileName)) {
             t.removeSet.add(fileName);
-            restrictedDelete(join(CWD, fileName));
+
+            if (listOfFiles.contains(fileName)) {
+                restrictedDelete(join(CWD, fileName));
+            }
+
         }
 
         if (fileExistsInIndex(fileName)) {
@@ -441,21 +457,29 @@ public class Repository {
                 System.out.println(file);
             }
         }
+        gitlet.Tree indexObj;
+        if (!INDEX.exists()) {
+            indexObj = null;
+        } else {
+            indexObj = readObject(INDEX, gitlet.Tree.class);
+        }
+
         System.out.println(" ");
-        gitlet.Tree latestObj = readObject(INDEX, gitlet.Tree.class);
         System.out.println("=== Staged Files ===");
-        if (latestObj != null) {
-            for (String key : latestObj.map.keySet()) {
+        if (indexObj != null) {
+            for (String key : indexObj.map.keySet()) {
                 System.out.println(key);
             }
         }
+
         System.out.println(" ");
         System.out.println("=== Removed Files ===");
-        if (latestObj != null) {
-            for (String key : latestObj.removeSet) {
+        if (indexObj != null) {
+            for (String key : indexObj.removeSet) {
                 System.out.println(key);
             }
         }
+
         System.out.println(" ");
         System.out.println("=== Modifications Not Staged For Commit ===");
         System.out.println(" ");
