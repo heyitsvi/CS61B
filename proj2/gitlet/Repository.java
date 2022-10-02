@@ -275,13 +275,24 @@ public class Repository {
         File f =  join(dir, fileName);
         return f.exists();
     }
+
+    public static String findFileInDir(String id, File dir) {
+        List<String> listOfFiles = plainFilenamesIn(dir);
+        for (String file : listOfFiles) {
+            if (file.contains(id)) {
+                return file;
+            }
+        }
+        return "";
+    }
     public static void checkoutFile(String commitID, String fileName) {
-        if (!fileExistsInDir(commitID, COMMIT_DIR)) {
+        String commitInDir = findFileInDir(commitID, COMMIT_DIR);
+        if (commitInDir.length() == 0) {
             System.out.println("No commit with that id exists.");
             System.exit(0);
         }
 
-        gitlet.Commit commitObj = readObject(join(COMMIT_DIR, commitID), gitlet.Commit.class);
+        gitlet.Commit commitObj = readObject(join(COMMIT_DIR, commitInDir), gitlet.Commit.class);
         gitlet.Tree treeObj = readObject(join(TREE_DIR, commitObj.getTree()), gitlet.Tree.class);
 
         if (treeObj != null) {
