@@ -75,8 +75,9 @@ public class Main {
                     System.exit(0);
                 }
 
-                if (!gitlet.Repository.fileExistsInIndex(args[1])
-                        && !gitlet.Repository.fileInHEADCommit(args[1])) {
+                if ((!gitlet.Repository.newFilesTracked()
+                    || gitlet.Repository.fileStagedForRemoval(args[1]))
+                    && !gitlet.Repository.fileInHEADCommit(args[1])) {
                     System.out.println("No reason to remove the file.");
                     System.exit(0);
                 }

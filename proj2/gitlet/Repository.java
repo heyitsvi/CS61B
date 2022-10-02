@@ -63,10 +63,17 @@ public class Repository {
 
     /** Check if the staging area is empty */
     public static boolean isIndexEmpty() {
+        if (!INDEX.exists()) {
+            return true;
+        }
         gitlet.Tree stagingTree = readObject(INDEX, gitlet.Tree.class);
         return stagingTree.map.isEmpty();
     }
 
+    public static boolean fileStagedForRemoval(String file) {
+        gitlet.Tree stagingTree = readObject(INDEX, gitlet.Tree.class);
+        return stagingTree.removeSet.contains(file);
+    }
     public static boolean filesStagedForRemovalEmpty() {
         gitlet.Tree stagingTree = readObject(INDEX, gitlet.Tree.class);
         return stagingTree.removeSet.isEmpty();
