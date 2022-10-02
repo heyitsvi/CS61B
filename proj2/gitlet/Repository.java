@@ -174,6 +174,12 @@ public class Repository {
     public static void addToIndex(String fileName) {
         gitlet.Tree indexObj = readObject(INDEX, gitlet.Tree.class);
 
+        if (indexObj.removeSet.contains(fileName)) {
+            indexObj.removeSet.remove(fileName);
+            writeObject(INDEX, indexObj);
+            System.exit(0);
+        }
+
         String contents = readContentsAsString(join(CWD, fileName));
 
         String blobSHA = sha1(contents);
@@ -185,7 +191,7 @@ public class Repository {
             }
         }
 
-        if (!indexObj.map.containsKey(fileName) || !indexObj.map.get(fileName).equals(blobSHA)){
+        if (!indexObj.map.containsKey(fileName) || !indexObj.map.get(fileName).equals(blobSHA)) {
             File blobObjFile = createBlobObj(contents);
             writeContents(blobObjFile, contents);
             indexObj.map.put(fileName, blobSHA);
@@ -221,7 +227,8 @@ public class Repository {
         File path = createTreeObj(serialiseTreeObj);
         writeObject(path, newTreeObj);
 
-        gitlet.Commit newCommit = gitlet.Commit.createCommit(msg, prevCommitSHA, new Date(), newObjSHA);
+        gitlet.Commit newCommit;
+        newCommit = gitlet.Commit.createCommit(msg, prevCommitSHA, new Date(), newObjSHA);
         byte[] serialisedCommit = serialize(newCommit);
 
         File newCommitFile = createCommitObj(serialisedCommit);
@@ -239,7 +246,7 @@ public class Repository {
 
         try {
             newBranch.createNewFile();
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
@@ -296,17 +303,17 @@ public class Repository {
         Set<String> trackedFiles = latestTreeObj.map.keySet();
 
         if (branchTreeObj != null) {
-             Set<String> branchFiles = branchTreeObj.map.keySet();
-             List<String> listOfFiles = plainFilenamesIn(CWD);
-             for (String file : branchFiles) {
-                 if (listOfFiles.contains(file)) {
+            Set<String> branchFiles = branchTreeObj.map.keySet();
+            List<String> listOfFiles = plainFilenamesIn(CWD);
+            for (String file : branchFiles) {
+                if (listOfFiles.contains(file)) {
                      overwriteFile(file, branchTreeObj.map.get(file), CWD);
-                 } else {
+                } else {
                      String fileSHA = branchTreeObj.map.get(file);
                      File contentPath = join(BLOB_DIR, fileSHA);
-                     createFileWithContents(join(CWD,file), contentPath);
-                 }
-             }
+                     createFileWithContents(join(CWD, file), contentPath);
+                }
+            }
 
             for (String file : trackedFiles) {
                 if (!branchFiles.contains(file)) {
@@ -327,7 +334,10 @@ public class Repository {
         return latestCommitTreeObj.map.containsKey(fileName);
     }
     public static void removeBranch(String branch) {
-        restrictedDelete(join(HEADS_DIR, branch));
+        File f = join(HEADS_DIR, branch);
+        if (!f.isDirectory()) {
+            f.delete();
+        }
     }
 
     /** Remove the files from the commit if they are staged for removal
@@ -390,13 +400,14 @@ public class Repository {
         Date date = c.getDate();
         String formattedDate = formatDate(date);
 
-        return "=== \n" +
-                "commit " + commit + "\n" +
-                "Date: " + formattedDate + "\n" +
-                msg + "\n";
+        return "=== \n"
+                + "commit " + commit + "\n"
+                + "Date: " + formattedDate + "\n"
+                + msg + "\n";
     }
 
-    /** Traverse commits starting from the HEAD commit to the initial commit and display their log msg */
+    /** Traverse commits starting from the HEAD commit to the initial commit
+     * and display their log msg */
     public static void printLog() {
         String prevCommitSHA = returnHEADPointer();
 
@@ -443,8 +454,8 @@ public class Repository {
 
     }
 
-    /** Display general into about the repository like branches, staged files, files staged for removal
-     *  modified files and untracked files.
+    /** Display general into about the repository like branches, staged files,
+     * files staged for removal, modified files and untracked files.
      */
     public static void printStatus() {
         List<String> files = plainFilenamesIn(HEADS_DIR);
