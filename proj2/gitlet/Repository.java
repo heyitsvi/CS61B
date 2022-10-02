@@ -309,10 +309,11 @@ public class Repository {
         String commitID = readContentsAsString(join(HEADS_DIR, branch));
         gitlet.Tree branchTreeObj = getCommitTreeObj(getCommitObj(commitID, COMMIT_DIR));
         gitlet.Tree latestTreeObj = getLatestCommitTreeObj(returnHEADPointer());
-        Set<String> trackedFiles = latestTreeObj.map.keySet();
+        Set<String> trackedFiles;
+        Set<String> branchFiles;
 
         if (branchTreeObj != null) {
-            Set<String> branchFiles = branchTreeObj.map.keySet();
+            branchFiles = branchTreeObj.map.keySet();
             List<String> listOfFiles = plainFilenamesIn(CWD);
             for (String file : branchFiles) {
                 if (listOfFiles.contains(file)) {
@@ -324,14 +325,26 @@ public class Repository {
                 }
             }
 
-            for (String file : trackedFiles) {
-                if (!branchFiles.contains(file)) {
+            if (latestTreeObj != null) {
+                trackedFiles = latestTreeObj.map.keySet();
+                for (String file : trackedFiles) {
+                    if (!branchFiles.contains(file)) {
+                        restrictedDelete(file);
+                    }
+                }
+            }
+        } else {
+            if (latestTreeObj != null) {
+                trackedFiles = latestTreeObj.map.keySet();
+                for (String file : trackedFiles) {
                     restrictedDelete(file);
                 }
             }
         }
 
-        clearStagingArea();
+        if (INDEX.exists()) {
+            clearStagingArea();
+        }
         gitlet.Repository.changeActiveBranch(branch);
     }
     /** Check if the latest commit in the current branch tracks this file */
