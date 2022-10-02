@@ -172,6 +172,7 @@ public class Repository {
     public static void clearStagingArea() {
         gitlet.Tree stagingTree = readObject(INDEX, gitlet.Tree.class);
         stagingTree.map.clear();
+        stagingTree.removeSet.clear();
         writeObject(INDEX, stagingTree);
     }
 
@@ -225,7 +226,8 @@ public class Repository {
         gitlet.Tree prevCommitTreeObj = getLatestCommitTreeObj(prevCommitSHA);
         gitlet.Tree indexTreeObj = readObject(INDEX, gitlet.Tree.class);
         removeFilesFromCommit(indexTreeObj.removeSet, prevCommitTreeObj);
-
+        //indexTreeObj.removeSet.clear();
+        //writeObject(INDEX, indexTreeObj);
 
         gitlet.Tree newTreeObj = mergeObjs(prevCommitTreeObj, indexTreeObj);
         byte[] serialiseTreeObj = serialize(newTreeObj);
@@ -355,7 +357,7 @@ public class Repository {
         for (String file : removeFiles) {
             commitTree.map.remove(file);
         }
-        removeFiles.clear();
+        //removeFiles.clear();
     }
 
     public static String shaOfFile(String fileName) {
