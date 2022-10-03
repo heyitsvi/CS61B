@@ -122,6 +122,7 @@ public class Main {
 
                 gitlet.Repository.printStatus();
                 break;
+
             case "branch" :
                 validateNumArgs("branch", args, 2);
                 if (!gitlet.Repository.checkGitDirExists()) {
@@ -135,6 +136,7 @@ public class Main {
 
                 gitlet.Repository.createBranch(args[1]);
                 break;
+
             case "checkout" :
                 if (!gitlet.Repository.checkGitDirExists()) {
                     System.out.println("Not in an initialized Gitlet directory.");
@@ -160,13 +162,18 @@ public class Main {
                 } else if (args.length == 3 && args[1].equals("--")) {
                     gitlet.Repository.checkoutFile(gitlet.Repository.returnHEADPointer(), args[2]);
                 } else if (args[2].equals("--") && args.length == 4) {
-                    gitlet.Repository.checkoutFile(args[1], args[3]);
+                    String commitInDir = gitlet.Repository.checkIfCommitExists(args[1]);
+                    if (commitInDir.length() == 0) {
+                        System.out.println("No commit with that id exists.");
+                        System.exit(0);
+                    }
+                    gitlet.Repository.checkoutFile(commitInDir, args[3]);
                 } else {
                     System.out.println("Incorrect operands.");
                     System.exit(0);
                 }
-
                 break;
+
             case "rm-branch" :
                 validateNumArgs("rm-branch", args, 2);
 
@@ -186,6 +193,30 @@ public class Main {
                 }
 
                 gitlet.Repository.removeBranch(args[1]);
+                break;
+
+            case "reset" :
+                validateNumArgs("reset", args, 2);
+
+                if (!gitlet.Repository.checkGitDirExists()) {
+                    System.out.println("Not in an initialized Gitlet directory.");
+                    System.exit(0);
+                }
+
+                String commitInDir = gitlet.Repository.checkIfCommitExists(args[1]);
+                if (commitInDir.length() == 0) {
+                    System.out.println("No commit with that id exists.");
+                    System.exit(0);
+                }
+                gitlet.Repository.resetToCommit(commitInDir);
+
+            case "merge" :
+                System.out.println(" ");
+                break;
+
+            default:
+                System.out.println("No command with that name exists.");
+                System.exit(0);
         }
     }
 

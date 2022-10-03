@@ -94,7 +94,7 @@ public class Repository {
         return t.map.containsKey(fileName);
     }
     /** Check if the same file (i.e.with the same SHA val) exists in the latest commit. */
-    public static boolean sameFileInLatestCommit(String fileName, String SHA) {
+    public static boolean sameFileInLatestCommit(String fileName, String sha) {
         String shaInMaster = returnHEADPointer();
         gitlet.Tree latestCommitTreeObj = getLatestCommitTreeObj(shaInMaster);
 
@@ -102,7 +102,7 @@ public class Repository {
             return false;
         }
 
-        return latestCommitTreeObj.map.get(fileName).equals(SHA);
+        return latestCommitTreeObj.map.get(fileName).equals(sha);
     }
 
     /** Create an object file inside Gitlet with file name equal to the sha value of its contents.
@@ -159,13 +159,13 @@ public class Repository {
     }
 
     /** Get the latest commit obj */
-    public static gitlet.Commit getLatestCommitObj(String fileName) {
-        return getCommitObj(fileName, COMMIT_DIR);
+    public static gitlet.Commit getLatestCommitObj(String commitID) {
+        return getCommitObj(commitID, COMMIT_DIR);
     }
 
     /** Get the tree object from the latest commit */
-    public static gitlet.Tree getLatestCommitTreeObj(String fileName) {
-        return getCommitTreeObj(getLatestCommitObj(fileName));
+    public static gitlet.Tree getLatestCommitTreeObj(String commitID) {
+        return getCommitTreeObj(getLatestCommitObj(commitID));
     }
 
     /** Clear the staging area by removing all the (fileName : SHA val) mappings */
@@ -226,8 +226,6 @@ public class Repository {
         gitlet.Tree prevCommitTreeObj = getLatestCommitTreeObj(prevCommitSHA);
         gitlet.Tree indexTreeObj = readObject(INDEX, gitlet.Tree.class);
         removeFilesFromCommit(indexTreeObj.removeSet, prevCommitTreeObj);
-        //indexTreeObj.removeSet.clear();
-        //writeObject(INDEX, indexTreeObj);
 
         gitlet.Tree newTreeObj = mergeObjs(prevCommitTreeObj, indexTreeObj);
         byte[] serialiseTreeObj = serialize(newTreeObj);
@@ -264,8 +262,8 @@ public class Repository {
     }
 
     /** Overwrite the file in a directory with its previous version from a commit */
-    public static void overwriteFile(String fileName, String savedFile, File DIR) {
-        File f = join(DIR, fileName);
+    public static void overwriteFile(String fileName, String savedFile, File dir) {
+        File f = join(dir, fileName);
         String contents = readContentsAsString(join(BLOB_DIR, savedFile));
         writeContents(f, contents);
     }
@@ -285,14 +283,12 @@ public class Repository {
         }
         return "";
     }
-    public static void checkoutFile(String commitID, String fileName) {
-        String commitInDir = findFileInDir(commitID, COMMIT_DIR);
-        if (commitInDir.length() == 0) {
-            System.out.println("No commit with that id exists.");
-            System.exit(0);
-        }
+    public static String checkIfCommitExists(String commitID) {
+        return findFileInDir(commitID, COMMIT_DIR);
+    }
 
-        gitlet.Commit commitObj = readObject(join(COMMIT_DIR, commitInDir), gitlet.Commit.class);
+    public static void checkoutFile(String commitID, String fileName) {
+        gitlet.Commit commitObj = readObject(join(COMMIT_DIR, commitID), gitlet.Commit.class);
         gitlet.Tree treeObj = readObject(join(TREE_DIR, commitObj.getTree()), gitlet.Tree.class);
 
         if (treeObj != null) {
@@ -303,6 +299,35 @@ public class Repository {
                 System.exit(0);
             }
         }
+    }
+
+    public static void resetToCommit(String commitID) {
+        gitlet.Tree t1 = getLatestCommitTreeObj(returnHEADPointer());
+        gitlet.Tree t2 = getCommitTreeObj(getCommitObj(commitID, COMMIT_DIR));
+        Set<String> filesNotTracked = t1.map.keySet();
+        Set<String> filesInCommit;
+
+        if (t2 != null) {
+            filesInCommit = t2.map.keySet();
+            for (String file : filesInCommit) {
+                if (join(CWD, file).exists()) {
+                    overwriteFile(file, t2.map.get(file), CWD);
+                } else {
+                    createFileWithContents(join(CWD, file), join(BLOB_DIR, t2.map.get(file)));
+                }
+            }
+            filesNotTracked.removeAll(t2.map.keySet());
+        }
+
+        for (String file : filesNotTracked) {
+            restrictedDelete(file);
+        }
+
+        if (INDEX.exists()) {
+            clearStagingArea();
+        }
+        String branch = getActiveBranch();
+        writeContents(join(HEADS_DIR, branch), commitID);
     }
     public static void createFileWithContents(File fileName, File contentPath) {
         try {
@@ -328,11 +353,11 @@ public class Repository {
             List<String> listOfFiles = plainFilenamesIn(CWD);
             for (String file : branchFiles) {
                 if (listOfFiles.contains(file)) {
-                     overwriteFile(file, branchTreeObj.map.get(file), CWD);
+                    overwriteFile(file, branchTreeObj.map.get(file), CWD);
                 } else {
-                     String fileSHA = branchTreeObj.map.get(file);
-                     File contentPath = join(BLOB_DIR, fileSHA);
-                     createFileWithContents(join(CWD, file), contentPath);
+                    String fileSHA = branchTreeObj.map.get(file);
+                    File contentPath = join(BLOB_DIR, fileSHA);
+                    createFileWithContents(join(CWD, file), contentPath);
                 }
             }
 
@@ -442,9 +467,9 @@ public class Repository {
     /** Traverse commits starting from the HEAD commit to the initial commit
      * and display their log msg */
     public static void printLog() {
-        String prevCommitSHA = returnHEADPointer();
+        String latestCommitID = returnHEADPointer();
 
-        gitlet.Commit prevCommitObj = getLatestCommitObj(prevCommitSHA);
+        gitlet.Commit prevCommitObj = getLatestCommitObj(latestCommitID);
 
         while (prevCommitObj.getParent() != null) {
             System.out.println(generateLogMsg(prevCommitObj));
@@ -594,7 +619,7 @@ public class Repository {
 
         writeObject(INDEX, indexObj);
 
-     }
+    }
 
     /**
      * Sets up the .gitlet folder dir in the CWD

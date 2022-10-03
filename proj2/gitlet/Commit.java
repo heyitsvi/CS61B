@@ -22,18 +22,18 @@ public class Commit implements Serializable {
     private Date date;
     private String message;
     private String parent;
-
+    private String parent2;
     private String tree;
 
     //private TreeMap<String, String> map = new TreeMap<>();
 
 
-    Commit(String message, String parent, Date date, String tree) {
+    Commit(String message, String parent, Date date, String tree, String parent2) {
         this.message = message;
         this.parent = parent;
         this.date = date;
         this.tree = tree;
-        //this.parent2 = parent2;
+        this.parent2 = parent2;
     }
 
     String getParent() {
@@ -53,11 +53,15 @@ public class Commit implements Serializable {
     }
 
     static Commit initialCommit() {
-        return new Commit("initial commit", null, new Date(0), null);
+        return new Commit("initial commit", null, new Date(0), null, null);
     }
 
     static Commit createCommit(String message, String parent, Date date, String tree) {
-        return new Commit(message, parent, date, tree);
+        return new Commit(message, parent, date, tree, null);
+    }
+
+    static Commit createMergeCommit(String msg, String parent, Date date, String tree, String p2) {
+        return new Commit(msg, parent, date, tree, p2);
     }
 
 }
