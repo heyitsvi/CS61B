@@ -6,6 +6,7 @@ D COMMIT_HEAD "commit ([a-f0-9]+)[ \t]*\n(?:Merge:\s+[0-9a-f]{7}\s+[0-9a-f]{7}[ 
 # "==="
 D COMMIT_LOG "(===[ ]*\ncommit [a-f0-9]+[ ]*\n(?:Merge:\s+[0-9a-f]{7}\s+[0-9a-f]{7}[ ]*\n)?${DATE}[ ]*\n(?:.|\n)*?(?=\Z|\n===))"
 # An arbitrary line of text (works even with ?s)
+D HEADER "commit ([a-f0-9]{8})[a-f0-9]+"
 D ARBLINE "[^\n]*(?=\n|\Z)"
 # Zero or more arbitrary full lines of text.
 D ARBLINES "(?:(?:.|\n)*(?:\n|\Z)|\A|\Z)"

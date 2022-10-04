@@ -288,8 +288,7 @@ public class Repository {
     }
 
     public static void checkoutFile(String commitID, String fileName) {
-        gitlet.Commit commitObj = readObject(join(COMMIT_DIR, commitID), gitlet.Commit.class);
-        gitlet.Tree treeObj = readObject(join(TREE_DIR, commitObj.getTree()), gitlet.Tree.class);
+        gitlet.Tree treeObj = getCommitTreeObj(getCommitObj(commitID, COMMIT_DIR));
 
         if (treeObj != null) {
             if (treeObj.map.containsKey(fileName)) {
