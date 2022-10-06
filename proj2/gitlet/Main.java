@@ -209,11 +209,49 @@ public class Main {
                     System.exit(0);
                 }
                 gitlet.Repository.resetToCommit(commitInDir);
-
-            case "merge" :
-                System.out.println(" ");
                 break;
 
+            case "merge" :
+                validateNumArgs("merge", args, 2);
+                if (!gitlet.Repository.checkGitDirExists()) {
+                    System.out.println("Not in an initialized Gitlet directory.");
+                    System.exit(0);
+                }
+
+                if (gitlet.Repository.newFilesTracked()) {
+                    System.out.println("You have uncommitted changes.");
+                    System.exit(0);
+                }
+
+                if (!gitlet.Repository.branchExists(args[1])) {
+                    System.out.println("A branch with that name does not exist.");
+                    System.exit(0);
+                }
+                if (gitlet.Repository.isCurrentBranch(args[1])) {
+                    System.out.println("Cannot merge a branch with itself.");
+                    System.exit(0);
+                }
+
+                String splitCommit = gitlet.Repository.findSplitPoint(args[1]);
+                String otherBranch = gitlet.Repository.latestCommitIn(args[1]);
+                String currentBranch = gitlet.Repository.returnHEADPointer();
+                if (splitCommit.equals(otherBranch)) {
+                    System.out.println("Given branch is an ancestor of the current branch.");
+                    System.exit(0);
+                }
+
+                if (splitCommit.equals(currentBranch)) {
+                    gitlet.Repository.checkoutBranch(args[1]);
+                    System.out.println("Current branch fast-forwarded.");
+                    System.exit(0);
+                }
+
+                gitlet.Repository.merge(splitCommit, args[1]);
+
+                break;
+            /*case "split" :
+                gitlet.Repository.findSplitPoint(args[1]);
+                break;*/
             default:
                 System.out.println("No command with that name exists.");
                 System.exit(0);

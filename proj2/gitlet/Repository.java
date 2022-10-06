@@ -3,9 +3,7 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -80,7 +78,7 @@ public class Repository {
     }
 
     public static boolean newFilesTracked() {
-        return !(isIndexEmpty() && filesStagedForRemovalEmpty());
+        return !isIndexEmpty() || !filesStagedForRemovalEmpty();
     }
 
     /** Check if the checkout branch is the current active branch */
@@ -207,7 +205,7 @@ public class Repository {
         }
 
     }
-
+    /** Merge two objects and return a new object */
     public static gitlet.Tree mergeObjs(gitlet.Tree o1, gitlet.Tree o2) {
         gitlet.Tree t = gitlet.Tree.createTree();
         if (o1 == null) {
@@ -388,6 +386,89 @@ public class Repository {
         }
         gitlet.Repository.changeActiveBranch(branch);
     }
+
+    public static String findSplitPoint(String branch) {
+        List<String> l1 = new ArrayList<>();
+        List<String> l2 = new ArrayList<>();
+
+        String currBranch = returnHEADPointer();
+        l1.add(currBranch);
+        gitlet.Commit currBranchObj = getLatestCommitObj(currBranch);
+
+        while (currBranchObj.getParent() != null) {
+            l1.add(currBranchObj.getParent());
+            currBranchObj = getCommitObj(currBranchObj.getParent(), COMMIT_DIR);
+        }
+
+        String otherBranch = readContentsAsString(join(HEADS_DIR, branch));
+        l2.add(otherBranch);
+        gitlet.Commit otherBranchObj = getLatestCommitObj(otherBranch);
+
+        while (otherBranchObj.getParent() != null) {
+            l2.add(otherBranchObj.getParent());
+            otherBranchObj = getCommitObj(otherBranchObj.getParent(), COMMIT_DIR);
+        }
+
+        List<String> commitAncestors = new ArrayList<>(l1);
+        commitAncestors.retainAll(l2);
+        return commitAncestors.get(0);
+    }
+
+    public static Set<String> getDifference(Object o1, Object o2) {
+        TreeMap<String, String> m1 = (TreeMap<String, String>) o1;
+        TreeMap<String, String> m2 = (TreeMap<String, String>) o2;
+        HashSet<String> removedFiles = new HashSet<>();
+        for (String file : m1.keySet()) {
+            if (!m2.containsKey(file)) {
+                removedFiles.add(file);
+            }
+        }
+        return removedFiles;
+    }
+
+    public static TreeMap<String, String> modifyFiles(Object o1, Object o2) {
+        TreeMap<String, String> m1 = (TreeMap<String, String>) o1;
+        TreeMap<String, String> m2 = (TreeMap<String, String>) o2;
+        TreeMap<String, String> modifiedFiles = new TreeMap<>();
+
+        for (String file : m1.keySet()) {
+            if (m2.containsKey(file)) {
+                /* Check if the file has been modified in m2 */
+                if (!m1.get(file).equals(m2.get(file))) {
+                    overwriteFile(file, m2.get(file), CWD);
+                    modifiedFiles.put(file, m2.get(file));
+                }
+            }
+        }
+        return modifiedFiles;
+    }
+    public static void merge(String splitCommit, String branch) {
+        gitlet.Tree splitTree = getCommitTreeObj(getCommitObj(splitCommit, COMMIT_DIR));
+        gitlet.Tree currTree = getCommitTreeObj(getCommitObj(returnHEADPointer(), COMMIT_DIR));
+        gitlet.Tree otherTree = getCommitTreeObj(getCommitObj(latestCommitIn(branch), COMMIT_DIR));
+        gitlet.Tree indexTree = getCommitTreeObj(getCommitObj("INDEX", CWD));
+        gitlet.Tree result;
+        Set<String> filesToRemove;
+        TreeMap<String, String> modifiedFiles;
+
+        if (splitTree != null && currTree != null && otherTree != null) {
+            /* Case 1 : Files in curr branch and split commit are same but have been
+               modified in the other branch */
+            if (splitTree.map.equals(currTree.map) && !currTree.map.equals(otherTree.map)) {
+                /* Files present in currTree that are not in otherTree */
+                filesToRemove = getDifference(currTree.map, otherTree.map);
+                indexTree.removeSet.addAll(filesToRemove);
+
+                if (!otherTree.map.isEmpty()) {
+                    modifiedFiles = modifyFiles(currTree.map, otherTree.map);
+                    indexTree.map.putAll(modifiedFiles);
+
+                }
+                writeObject(INDEX, indexTree);
+            }
+        }
+    }
+
     /** Check if the latest commit in the current branch tracks this file */
     public static boolean fileInHEADCommit(String fileName) {
         gitlet.Tree latestCommitTreeObj = getLatestCommitTreeObj(returnHEADPointer());
@@ -411,7 +492,6 @@ public class Repository {
         for (String file : removeFiles) {
             commitTree.map.remove(file);
         }
-        //removeFiles.clear();
     }
 
     public static String shaOfFile(String fileName) {
@@ -561,19 +641,6 @@ public class Repository {
         System.out.println(" ");
     }
 
-
-    /** Updates Master to point to the latest commit
-     * @param c The commit object you want the master to point at.
-     * */
-
-    /**public static void updateMaster(Object c) {
-        String sha = sha1(c);
-        writeContents(MASTER, sha);
-    }
-    public static String returnMasterPointer() {
-        return readContentsAsString(MASTER);
-    }*/
-
     /** Update the active branch to point to latest commit */
     public static void updateActiveBranch(Object c) {
         String branch = getActiveBranch();
@@ -594,6 +661,10 @@ public class Repository {
     /** Return the most recent commit id of the branch HEAD points at */
     public static String returnHEADPointer() {
         String branch = readContentsAsString(HEAD);
+        return readContentsAsString(join(HEADS_DIR, branch));
+    }
+
+    public static String latestCommitIn(String branch) {
         return readContentsAsString(join(HEADS_DIR, branch));
     }
 
