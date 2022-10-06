@@ -220,14 +220,21 @@ public class Repository {
         return t;
     }
 
-    /** Create a new commit with the given message */
-    public static void createANewCommit(String msg) {
+    /** Merge index and the latest commit to create the new commit obj
+     * Remove the files staged for removal
+     * Add the files staged for addition to the new commit obj.
+     */
+    public static gitlet.Tree getNewCommitObj() {
         String prevCommitSHA = returnHEADPointer();
         gitlet.Tree prevCommitTreeObj = getLatestCommitTreeObj(prevCommitSHA);
         gitlet.Tree indexTreeObj = readObject(INDEX, gitlet.Tree.class);
         removeFilesFromCommit(indexTreeObj.removeSet, prevCommitTreeObj);
+        return mergeObjs(prevCommitTreeObj, indexTreeObj);
+    }
 
-        gitlet.Tree newTreeObj = mergeObjs(prevCommitTreeObj, indexTreeObj);
+    /** Create a new commit with the given message */
+    public static void createANewCommit(String msg) {
+        gitlet.Tree newTreeObj = getNewCommitObj();
         byte[] serialiseTreeObj = serialize(newTreeObj);
         String newObjSHA = sha1(serialiseTreeObj);
 
@@ -235,9 +242,8 @@ public class Repository {
         writeObject(path, newTreeObj);
 
         gitlet.Commit newCommit;
-        newCommit = gitlet.Commit.createCommit(msg, prevCommitSHA, new Date(), newObjSHA);
+        newCommit = gitlet.Commit.createCommit(msg, returnHEADPointer(), new Date(), newObjSHA);
         byte[] serialisedCommit = serialize(newCommit);
-
         File newCommitFile = createCommitObj(serialisedCommit);
         writeObject(newCommitFile, newCommit);
 
