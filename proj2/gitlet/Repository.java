@@ -65,16 +65,16 @@ public class Repository {
             return true;
         }
         gitlet.Tree stagingTree = readObject(INDEX, gitlet.Tree.class);
-        return stagingTree.map.isEmpty();
+        return stagingTree.getMap().isEmpty();
     }
 
     public static boolean fileStagedForRemoval(String file) {
         gitlet.Tree stagingTree = readObject(INDEX, gitlet.Tree.class);
-        return stagingTree.removeSet.contains(file);
+        return stagingTree.getRemoveSet().contains(file);
     }
     public static boolean filesStagedForRemovalEmpty() {
         gitlet.Tree stagingTree = readObject(INDEX, gitlet.Tree.class);
-        return stagingTree.removeSet.isEmpty();
+        return stagingTree.getRemoveSet().isEmpty();
     }
 
     public static boolean newFilesTracked() {
@@ -89,18 +89,18 @@ public class Repository {
     /** Checks in Index to see if the file has been staged */
     public static boolean fileExistsInIndex(String fileName) {
         gitlet.Tree t = readObject(INDEX, gitlet.Tree.class);
-        return t.map.containsKey(fileName);
+        return t.getMap().containsKey(fileName);
     }
     /** Check if the same file (i.e.with the same SHA val) exists in the latest commit. */
     public static boolean sameFileInLatestCommit(String fileName, String sha) {
         String shaInMaster = returnHEADPointer();
         gitlet.Tree latestCommitTreeObj = getLatestCommitTreeObj(shaInMaster);
 
-        if (latestCommitTreeObj == null || !latestCommitTreeObj.map.containsKey(fileName)) {
+        if (latestCommitTreeObj == null || !latestCommitTreeObj.getMap().containsKey(fileName)) {
             return false;
         }
 
-        return latestCommitTreeObj.map.get(fileName).equals(sha);
+        return latestCommitTreeObj.getMap().get(fileName).equals(sha);
     }
 
     /** Create an object file inside Gitlet with file name equal to the sha value of its contents.
@@ -169,8 +169,8 @@ public class Repository {
     /** Clear the staging area by removing all the (fileName : SHA val) mappings */
     public static void clearStagingArea() {
         gitlet.Tree stagingTree = readObject(INDEX, gitlet.Tree.class);
-        stagingTree.map.clear();
-        stagingTree.removeSet.clear();
+        stagingTree.getMap().clear();
+        stagingTree.getRemoveSet().clear();
         writeObject(INDEX, stagingTree);
     }
 
@@ -180,8 +180,8 @@ public class Repository {
     public static void addToIndex(String fileName) {
         gitlet.Tree indexObj = readObject(INDEX, gitlet.Tree.class);
 
-        if (indexObj.removeSet.contains(fileName)) {
-            indexObj.removeSet.remove(fileName);
+        if (indexObj.getRemoveSet().contains(fileName)) {
+            indexObj.getRemoveSet().remove(fileName);
             writeObject(INDEX, indexObj);
             System.exit(0);
         }
@@ -197,10 +197,11 @@ public class Repository {
             }
         }
 
-        if (!indexObj.map.containsKey(fileName) || !indexObj.map.get(fileName).equals(blobSHA)) {
+        if (!indexObj.getMap().containsKey(fileName)
+                || !indexObj.getMap().get(fileName).equals(blobSHA)) {
             File blobObjFile = createBlobObj(contents);
             writeContents(blobObjFile, contents);
-            indexObj.map.put(fileName, blobSHA);
+            indexObj.getMap().put(fileName, blobSHA);
             writeObject(INDEX, indexObj);
         }
 
@@ -209,12 +210,12 @@ public class Repository {
     public static gitlet.Tree mergeObjs(gitlet.Tree o1, gitlet.Tree o2) {
         gitlet.Tree t = gitlet.Tree.createTree();
         if (o1 == null) {
-            t.map.putAll(o2.map);
+            t.getMap().putAll(o2.getMap());
             return t;
         }
 
-        t.map.putAll(o1.map);
-        t.map.putAll(o2.map);
+        t.getMap().putAll(o1.getMap());
+        t.getMap().putAll(o2.getMap());
         return t;
     }
 
@@ -226,12 +227,12 @@ public class Repository {
         String prevCommitSHA = returnHEADPointer();
         gitlet.Tree prevCommitTreeObj = getLatestCommitTreeObj(prevCommitSHA);
         gitlet.Tree indexTreeObj = readObject(INDEX, gitlet.Tree.class);
-        removeFilesFromCommit(indexTreeObj.removeSet, prevCommitTreeObj);
+        removeFilesFromCommit(indexTreeObj.getRemoveSet(), prevCommitTreeObj);
         return mergeObjs(prevCommitTreeObj, indexTreeObj);
     }
 
     /** Create a new commit with the given message */
-    public static void createANewCommit(String msg) {
+    public static void createANewCommit(String msg, String type, String branch) {
         gitlet.Tree newTreeObj = getNewCommitObj();
         byte[] serialiseTreeObj = serialize(newTreeObj);
         String newObjSHA = sha1(serialiseTreeObj);
@@ -240,7 +241,12 @@ public class Repository {
         writeObject(path, newTreeObj);
 
         gitlet.Commit newCommit;
-        newCommit = gitlet.Commit.createCommit(msg, returnHEADPointer(), new Date(), newObjSHA);
+
+        if (type.equals("regular")) {
+            newCommit = gitlet.Commit.createCommit(msg, returnHEADPointer(), new Date(), newObjSHA);
+        } else {
+            newCommit = gitlet.Commit.createMergeCommit(msg, returnHEADPointer(), new Date(), newObjSHA, branch);
+        }
         byte[] serialisedCommit = serialize(newCommit);
         File newCommitFile = createCommitObj(serialisedCommit);
         writeObject(newCommitFile, newCommit);
@@ -295,8 +301,8 @@ public class Repository {
         gitlet.Tree treeObj = getCommitTreeObj(getCommitObj(commitID, COMMIT_DIR));
 
         if (treeObj != null) {
-            if (treeObj.map.containsKey(fileName)) {
-                overwriteFile(fileName, treeObj.map.get(fileName), CWD);
+            if (treeObj.getMap().containsKey(fileName)) {
+                overwriteFile(fileName, treeObj.getMap().get(fileName), CWD);
             } else {
                 System.out.println("File does not exist in that commit.");
                 System.exit(0);
@@ -307,19 +313,19 @@ public class Repository {
     public static void resetToCommit(String commitID) {
         gitlet.Tree t1 = getLatestCommitTreeObj(returnHEADPointer());
         gitlet.Tree t2 = getCommitTreeObj(getCommitObj(commitID, COMMIT_DIR));
-        Set<String> filesNotTracked = t1.map.keySet();
+        Set<String> filesNotTracked = t1.getMap().keySet();
         Set<String> filesInCommit;
 
         if (t2 != null) {
-            filesInCommit = t2.map.keySet();
+            filesInCommit = t2.getMap().keySet();
             for (String file : filesInCommit) {
                 if (join(CWD, file).exists()) {
-                    overwriteFile(file, t2.map.get(file), CWD);
+                    overwriteFile(file, t2.getMap().get(file), CWD);
                 } else {
-                    createFileWithContents(join(CWD, file), join(BLOB_DIR, t2.map.get(file)));
+                    createFileWithContents(join(CWD, file), join(BLOB_DIR, t2.getMap().get(file)));
                 }
             }
-            filesNotTracked.removeAll(t2.map.keySet());
+            filesNotTracked.removeAll(t2.getMap().keySet());
         }
 
         for (String file : filesNotTracked) {
@@ -352,20 +358,20 @@ public class Repository {
         Set<String> branchFiles;
 
         if (branchTreeObj != null) {
-            branchFiles = branchTreeObj.map.keySet();
+            branchFiles = branchTreeObj.getMap().keySet();
             List<String> listOfFiles = plainFilenamesIn(CWD);
             for (String file : branchFiles) {
                 if (listOfFiles.contains(file)) {
-                    overwriteFile(file, branchTreeObj.map.get(file), CWD);
+                    overwriteFile(file, branchTreeObj.getMap().get(file), CWD);
                 } else {
-                    String fileSHA = branchTreeObj.map.get(file);
+                    String fileSHA = branchTreeObj.getMap().get(file);
                     File contentPath = join(BLOB_DIR, fileSHA);
                     createFileWithContents(join(CWD, file), contentPath);
                 }
             }
 
             if (latestTreeObj != null) {
-                trackedFiles = latestTreeObj.map.keySet();
+                trackedFiles = latestTreeObj.getMap().keySet();
                 for (String file : trackedFiles) {
                     if (!branchFiles.contains(file)) {
                         restrictedDelete(file);
@@ -374,7 +380,7 @@ public class Repository {
             }
         } else {
             if (latestTreeObj != null) {
-                trackedFiles = latestTreeObj.map.keySet();
+                trackedFiles = latestTreeObj.getMap().keySet();
                 for (String file : trackedFiles) {
                     restrictedDelete(file);
                 }
@@ -442,6 +448,12 @@ public class Repository {
         }
         return modifiedFiles;
     }
+
+    public static void createMergeCommit(String branch) {
+        String msg  = "Merged " + branch + " into" + readContentsAsString(HEADS_DIR);
+        createANewCommit(msg, "merge", branch);
+    }
+
     public static void merge(String splitCommit, String branch) {
         gitlet.Tree splitTree = getCommitTreeObj(getCommitObj(splitCommit, COMMIT_DIR));
         gitlet.Tree currTree = getCommitTreeObj(getCommitObj(returnHEADPointer(), COMMIT_DIR));
@@ -454,17 +466,18 @@ public class Repository {
         if (splitTree != null && currTree != null && otherTree != null) {
             /* Case 1 : Files in curr branch and split commit are same but have been
                modified in the other branch */
-            if (splitTree.map.equals(currTree.map) && !currTree.map.equals(otherTree.map)) {
+            if (splitTree.getMap().equals(currTree.getMap())
+                && !currTree.getMap().equals(otherTree.getMap())) {
                 /* Files present in currTree that are not in otherTree */
-                filesToRemove = getDifference(currTree.map, otherTree.map);
-                indexTree.removeSet.addAll(filesToRemove);
+                filesToRemove = getDifference(currTree.getMap(), otherTree.getMap());
+                indexTree.getRemoveSet().addAll(filesToRemove);
 
-                if (!otherTree.map.isEmpty()) {
-                    modifiedFiles = modifyFiles(currTree.map, otherTree.map);
-                    indexTree.map.putAll(modifiedFiles);
-
+                if (!otherTree.getMap().isEmpty()) {
+                    modifiedFiles = modifyFiles(currTree.getMap(), otherTree.getMap());
+                    indexTree.getMap().putAll(modifiedFiles);
                 }
                 writeObject(INDEX, indexTree);
+                createMergeCommit(branch);
             }
         }
     }
@@ -475,7 +488,7 @@ public class Repository {
         if (latestCommitTreeObj == null) {
             return false;
         }
-        return latestCommitTreeObj.map.containsKey(fileName);
+        return latestCommitTreeObj.getMap().containsKey(fileName);
     }
     public static void removeBranch(String branch) {
         File f = join(HEADS_DIR, branch);
@@ -490,7 +503,7 @@ public class Repository {
      * */
     public static void removeFilesFromCommit(Set<String> removeFiles, gitlet.Tree commitTree) {
         for (String file : removeFiles) {
-            commitTree.map.remove(file);
+            commitTree.getMap().remove(file);
         }
     }
 
@@ -510,7 +523,7 @@ public class Repository {
         List<String> listOfFiles = plainFilenamesIn(CWD);
 
         if (fileInHEADCommit(fileName)) {
-            t.removeSet.add(fileName);
+            t.getRemoveSet().add(fileName);
 
             if (listOfFiles.contains(fileName)) {
                 restrictedDelete(join(CWD, fileName));
@@ -519,7 +532,7 @@ public class Repository {
         }
 
         if (fileExistsInIndex(fileName)) {
-            t.map.remove(fileName);
+            t.getMap().remove(fileName);
         }
 
         writeObject(INDEX, t);
@@ -542,11 +555,21 @@ public class Repository {
         String msg = c.getMsg();
         Date date = c.getDate();
         String formattedDate = formatDate(date);
+        String parent = c.getParent();
+        String parent2 = c.getParent2();
 
-        return "=== \n"
-                + "commit " + commit + "\n"
-                + "Date: " + formattedDate + "\n"
-                + msg + "\n";
+        if (parent2 == null) {
+            return "=== \n"
+                    + "commit " + commit + "\n"
+                    + "Date: " + formattedDate + "\n"
+                    + msg + "\n";
+        } else {
+            return "=== \n"
+                    + "commit " + commit + "\n"
+                    + "Merge: " + parent + " " + parent2
+                    + "Date: " + formattedDate + "\n"
+                    + msg + "\n";
+        }
     }
 
     /** Traverse commits starting from the HEAD commit to the initial commit
@@ -621,7 +644,7 @@ public class Repository {
         System.out.println(" ");
         System.out.println("=== Staged Files ===");
         if (indexObj != null) {
-            for (String key : indexObj.map.keySet()) {
+            for (String key : indexObj.getMap().keySet()) {
                 System.out.println(key);
             }
         }
@@ -629,7 +652,7 @@ public class Repository {
         System.out.println(" ");
         System.out.println("=== Removed Files ===");
         if (indexObj != null) {
-            for (String key : indexObj.removeSet) {
+            for (String key : indexObj.getRemoveSet()) {
                 System.out.println(key);
             }
         }
@@ -691,7 +714,7 @@ public class Repository {
 
         String blobSHA = sha1(contents);
 
-        indexObj.map.put(fileName, blobSHA);
+        indexObj.getMap().put(fileName, blobSHA);
 
         writeObject(INDEX, indexObj);
 

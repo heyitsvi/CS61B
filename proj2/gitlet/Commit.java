@@ -51,17 +51,20 @@ public class Commit implements Serializable {
     String getTree() {
         return this.tree;
     }
+    String getParent2() {
+        return this.parent2;
+    }
 
     static Commit initialCommit() {
         return new Commit("initial commit", null, new Date(0), null, null);
     }
 
-    static Commit createCommit(String message, String parent, Date date, String tree) {
-        return new Commit(message, parent, date, tree, null);
+    static Commit createCommit(String msg, String parent, Date d, String tree) {
+        return new Commit(msg, parent, d, tree, null);
     }
 
-    static Commit createMergeCommit(String msg, String parent, Date date, String tree, String p2) {
-        return new Commit(msg, parent, date, tree, p2);
+    static Commit createMergeCommit(String msg, String parent, Date d, String tree, String p2) {
+        return new Commit(msg, parent, d, tree, p2);
     }
 
 }

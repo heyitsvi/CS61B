@@ -64,7 +64,7 @@ public class Main {
                     System.exit(0);
                 }
 
-                gitlet.Repository.createANewCommit(args[1]);
+                gitlet.Repository.createANewCommit(args[1], "regular", null);
                 break;
 
             case "rm" :
@@ -249,9 +249,6 @@ public class Main {
                 gitlet.Repository.merge(splitCommit, args[1]);
 
                 break;
-            /*case "split" :
-                gitlet.Repository.findSplitPoint(args[1]);
-                break;*/
             default:
                 System.out.println("No command with that name exists.");
                 System.exit(0);

@@ -5,8 +5,8 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 public class Tree implements Serializable {
-    TreeMap<String, String> map;
-    Set<String> removeSet;
+    private TreeMap<String, String> map;
+    private Set<String> removeSet;
 
     Tree() {
         map = new TreeMap<>();
@@ -15,6 +15,14 @@ public class Tree implements Serializable {
 
     public static Tree createTree() {
         return new Tree();
+    }
+
+    public TreeMap<String, String> getMap() {
+        return this.map;
+    }
+
+    public Set<String> getRemoveSet() {
+        return this.removeSet;
     }
 
 }
