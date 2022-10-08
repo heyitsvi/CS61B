@@ -1,5 +1,7 @@
 package gitlet;
 
+import java.util.Set;
+
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author Vivek Singh
  */
@@ -75,6 +77,11 @@ public class Main {
                     System.exit(0);
                 }
 
+                /**if (!gitlet.Repository.isFileUntracked(args[1])) {
+                    System.out.println("No reason to remove the file.");
+                    System.exit(0);
+                }*/
+
                 if ((!gitlet.Repository.newFilesTracked()
                     || gitlet.Repository.fileStagedForRemoval(args[1]))
                     && !gitlet.Repository.fileInHEADCommit(args[1])) {
@@ -149,7 +156,7 @@ public class Main {
                         System.exit(0);
                     }
 
-                    if (!gitlet.Repository.isIndexEmpty()) {
+                    if (gitlet.Repository.anyUntrackedFiles()) {
                         System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                         System.exit(0);
                     }
@@ -203,6 +210,11 @@ public class Main {
                     System.exit(0);
                 }
 
+                if (gitlet.Repository.anyUntrackedFiles()) {
+                    System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                    System.exit(0);
+                }
+
                 String commitInDir = gitlet.Repository.checkIfCommitExists(args[1]);
                 if (commitInDir.length() == 0) {
                     System.out.println("No commit with that id exists.");
@@ -232,6 +244,11 @@ public class Main {
                     System.exit(0);
                 }
 
+                if (gitlet.Repository.anyUntrackedFiles()) {
+                    System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                    System.exit(0);
+                }
+
                 String splitCommit = gitlet.Repository.findSplitPoint(args[1]);
                 String otherBranch = gitlet.Repository.latestCommitIn(args[1]);
                 String currentBranch = gitlet.Repository.returnHEADPointer();
@@ -249,6 +266,19 @@ public class Main {
                 gitlet.Repository.merge(splitCommit, args[1]);
 
                 break;
+            /**case "untracked" :
+                Set<String> files = gitlet.Repository.getUntrackedFiles(gitlet.Repository.CWD);
+                if (files == null) {
+                    System.out.println("null result");
+                    System.exit(0);
+                }
+                for (String file : files) {
+                    System.out.println(file);
+                }
+                break;
+            case "anyUntracked" :
+                System.out.println("Result : " + gitlet.Repository.anyUntrackedFiles());
+                break;*/
             default:
                 System.out.println("No command with that name exists.");
                 System.exit(0);
@@ -267,19 +297,6 @@ public class Main {
     public static void validateNumArgs(String cmd, String[] args, int n) {
         if (args.length != n) {
             System.out.println("Incorrect operands.");
-            System.exit(0);
-        }
-    }
-
-    /** Checks if the predicate is equal to the expected value and if not then print the error
-     * msg and exit.
-     * @param pred The result of a function call
-     * @param expected Expected return val of the predicate function
-     * @param msg Error msg that will be displayed before exiting
-     */
-    public static void checkFor(boolean pred, boolean expected, String msg) {
-        if (pred != expected) {
-            System.out.println(msg);
             System.exit(0);
         }
     }

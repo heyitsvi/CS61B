@@ -111,12 +111,19 @@ public class Repository {
 
     /** Check if there are untracked files in CWD */
     public static boolean anyUntrackedFiles() {
-        return !getUntrackedFiles(CWD).isEmpty();
+        Set<String> result = getUntrackedFiles(CWD);
+        if (result == null) {
+            return false;
+        }
+        return !result.isEmpty();
     }
 
     /** Check if the file is untracked */
     public static boolean isFileUntracked(String fileName) {
         Set<String> untrackedFiles = getUntrackedFiles(CWD);
+        if (untrackedFiles == null) {
+            return false;
+        }
         return untrackedFiles.contains(fileName);
     }
 
@@ -151,12 +158,6 @@ public class Repository {
         return createObjectFile(o, TREE_DIR);
     }
 
-    /** Get contents as byte array from file in CWD */
-    public static byte[] getContentsFromFile(String fileName) {
-        File filePath = join(CWD, fileName);
-        return readContents(filePath);
-    }
-
     /** Get the commit object from a directory */
     public static gitlet.Commit getCommitObj(String fileName, File dir) {
         File filePath = join(dir, fileName);
@@ -166,16 +167,47 @@ public class Repository {
     /** Get the untracked files in the given directory */
     public static Set<String> getUntrackedFiles(File dir) {
         List<String> filesInDir = plainFilenamesIn(dir);
+        //System.out.println("Files in Dir");
+        /*for (String file : filesInDir) {
+            System.out.println(file);
+        }*/
         assert filesInDir != null;
 
-        Set<String> result = new HashSet<>(filesInDir);
-        gitlet.Tree t = getLatestCommitTreeObj(returnHEADPointer());
-        Set<String> filesTracked = t.getMap().keySet();
-        gitlet.Tree t2 = readObject(INDEX, gitlet.Tree.class);
-        Set<String> filesStaged = t2.getMap().keySet();
+        if (!INDEX.exists() || filesInDir.isEmpty()) {
+            return null;
+        }
 
-        result.removeAll(filesTracked);
-        result.removeAll(filesStaged);
+        Set<String> result = new HashSet<>();
+        Set<String> filesTracked;
+        Set<String> filesStaged;
+        gitlet.Tree t = getLatestCommitTreeObj(returnHEADPointer());
+        if (t == null) {
+            filesTracked = null;
+        } else {
+            filesTracked = t.getMap().keySet();
+        }
+        gitlet.Tree t2 = readObject(INDEX, gitlet.Tree.class);
+        if (t2 == null) {
+            filesStaged = null;
+        } else {
+            filesStaged = t2.getMap().keySet();
+        }
+
+        for (String file : filesInDir) {
+            String fileContents = readContentsAsString(join(dir, file));
+            String sha = sha1(fileContents);
+            if (filesStaged != null && filesStaged.contains(file)) {
+                if (!t2.getMap().get(file).equals(sha)) {
+                    result.add(file);
+                }
+            } else if (filesTracked != null && filesTracked.contains(file)) {
+                if (!t.getMap().get(file).equals(sha)) {
+                    result.add(file);
+                }
+            } else {
+                result.add(file);
+            }
+        }
         return result;
     }
 
@@ -457,7 +489,7 @@ public class Repository {
         return commitAncestors.get(0);
     }
 
-    public static Set<String> getDifference(Object o1, Object o2) {
+    /**public static Set<String> getDifference(Object o1, Object o2) {
         TreeMap<String, String> m1 = (TreeMap<String, String>) o1;
         TreeMap<String, String> m2 = (TreeMap<String, String>) o2;
         HashSet<String> removedFiles = new HashSet<>();
@@ -467,16 +499,16 @@ public class Repository {
             }
         }
         return removedFiles;
-    }
+    }*/
 
-    public static TreeMap<String, String> modifyFiles(Object o1, Object o2) {
+    /**public static TreeMap<String, String> modifyFiles(Object o1, Object o2) {
         TreeMap<String, String> m1 = (TreeMap<String, String>) o1;
         TreeMap<String, String> m2 = (TreeMap<String, String>) o2;
         TreeMap<String, String> modifiedFiles = new TreeMap<>();
 
         for (String file : m1.keySet()) {
             if (m2.containsKey(file)) {
-                /* Check if the file has been modified in m2 */
+                // Check if the file has been modified in m2
                 if (!m1.get(file).equals(m2.get(file))) {
                     overwriteFile(file, m2.get(file), CWD);
                     modifiedFiles.put(file, m2.get(file));
@@ -484,7 +516,7 @@ public class Repository {
             }
         }
         return modifiedFiles;
-    }
+    }*/
 
     public static void createMergeCommit(String branch) {
         String msg  = "Merged " + branch + " into " + readContentsAsString(HEAD) + ".";
@@ -552,12 +584,12 @@ public class Repository {
                         break;
                     }
                 } else if (fileExistsIn(file, splitSet) && !fileExistsIn(file, currSet)) {
-                        break;
+                    break;
                 } else if (fileExistsIn(file, splitSet, currSet)
                         && !fileExistsIn(file, otherSet)
                         && sameFileIn(file, splitTree, currTree)) {
-                        indexTree.getRemoveSet().add(file);
-                        restrictedDelete(join(CWD, file));
+                    indexTree.getRemoveSet().add(file);
+                    restrictedDelete(join(CWD, file));
                 } else if (!fileExistsIn(file, splitSet)) {
                     if (fileExistsIn(file, currSet) && !fileExistsIn(file, otherSet)) {
                         break;
@@ -657,7 +689,7 @@ public class Repository {
         } else {
             return "=== \n"
                     + "commit " + commit + "\n"
-                    + "Merge: " + parent.substring(0, 6) + " " + parent2.substring(0, 6) + "\n"
+                    + "Merge: " + parent.substring(0, 7) + " " + parent2.substring(0, 7) + "\n"
                     + "Date: " + formattedDate + "\n"
                     + msg + "\n";
         }
