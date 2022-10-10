@@ -1,5 +1,4 @@
 package gitlet;
-
 import java.util.Set;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
