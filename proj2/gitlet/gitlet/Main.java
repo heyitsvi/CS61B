@@ -77,18 +77,6 @@ public class Main {
                     System.exit(0);
                 }
 
-                /**if (!gitlet.Repository.isFileUntracked(args[1])) {
-                    System.out.println("No reason to remove the file.");
-                    System.exit(0);
-                }*/
-
-                if ((!gitlet.Repository.newFilesTracked()
-                    || gitlet.Repository.fileStagedForRemoval(args[1]))
-                    && !gitlet.Repository.fileInHEADCommit(args[1])) {
-                    System.out.println("No reason to remove the file.");
-                    System.exit(0);
-                }
-
                 gitlet.Repository.removeFile(args[1]);
                 break;
 
@@ -266,7 +254,7 @@ public class Main {
                 gitlet.Repository.merge(splitCommit, args[1]);
 
                 break;
-            /**case "untracked" :
+            case "untracked" :
                 Set<String> files = gitlet.Repository.getUntrackedFiles(gitlet.Repository.CWD);
                 if (files == null) {
                     System.out.println("null result");
@@ -278,7 +266,7 @@ public class Main {
                 break;
             case "anyUntracked" :
                 System.out.println("Result : " + gitlet.Repository.anyUntrackedFiles());
-                break;*/
+                break;
             default:
                 System.out.println("No command with that name exists.");
                 System.exit(0);

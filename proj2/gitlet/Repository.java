@@ -122,10 +122,15 @@ public class Repository {
     public static boolean isFileUntracked(String fileName) {
         Set<String> untrackedFiles = getUntrackedFiles(CWD);
         if (untrackedFiles == null) {
-            return false;
+            return true;
         }
         return untrackedFiles.contains(fileName);
     }
+
+    /**public static void stageFileForRemoval(String f) {
+        gitlet.Tree t = readObject(INDEX, gitlet.Tree.class);
+        t.getRemoveSet().add(f);
+    }*/
 
 
     /** Create an object file inside Gitlet with file name equal to the sha value of its contents.
@@ -171,9 +176,13 @@ public class Repository {
         /*for (String file : filesInDir) {
             System.out.println(file);
         }*/
-        assert filesInDir != null;
+        //assert filesInDir != null;
 
-        if (!INDEX.exists() || filesInDir.isEmpty()) {
+        if (!INDEX.exists()) {
+            return new HashSet<>(filesInDir);
+        }
+
+        if (filesInDir == null) {
             return null;
         }
 
@@ -539,6 +548,14 @@ public class Repository {
         }
         return true;
     }
+    public static String mergeFileContents(File f1, File f2) {
+        String contents1 = readContentsAsString(f1);
+        String contents2 =  readContentsAsString(f2);
+        return "<<<<<<< HEAD \n" +
+                contents1 + "======= + \n" +
+                contents2 + ">>>>>>>";
+    }
+
     public static void merge(String splitCommit, String branch) {
         gitlet.Tree splitTree = getCommitTreeObj(getCommitObj(splitCommit, COMMIT_DIR));
         gitlet.Tree currTree = getCommitTreeObj(getCommitObj(returnHEADPointer(), COMMIT_DIR));
@@ -547,61 +564,93 @@ public class Repository {
 
         if (splitTree != null && currTree != null && otherTree != null) {
             Set<String> splitSet = new HashSet<>(splitTree.getMap().keySet());
+            splitSet.addAll(splitTree.getRemoveSet());
             Set<String> currSet = new HashSet<>(currTree.getMap().keySet());
+            currSet.addAll(currTree.getRemoveSet());
             Set<String> otherSet = new HashSet<>(otherTree.getMap().keySet());
+            otherSet.addAll(otherTree.getRemoveSet());
 
             Set<String> allFiles = new HashSet<>(splitSet);
             allFiles.addAll(currSet);
             allFiles.addAll(otherSet);
-            //System.out.println("Cond 1");
-            //filesToRemove = getDifference(currTree.getMap(), otherTree.getMap());
-            //modifiedFiles = modifyFiles(currTree.getMap(), otherTree.getMap());
-            /* Case 1 : Files in curr branch and split commit are same but have been
-               modified in the other branch */
-            /*if (splitTree.getMap().equals(currTree.getMap())
-                && !currTree.getMap().equals(otherTree.getMap())) {
-                System.out.println("Cond 2");
-                //Files present in currTree that are not in otherTree
-                filesToRemove = getDifference(currTree.getMap(), otherTree.getMap());
-                indexTree.getRemoveSet().addAll(filesToRemove);
+            boolean conflictFlag = false;
 
-                modifiedFiles = modifyFiles(currTree.getMap(), otherTree.getMap());
-                indexTree.getMap().putAll(modifiedFiles);
-
-                writeObject(INDEX, indexTree);
-                createMergeCommit(branch);
-            }*/
-            /* Case 1 : Files in curr branch and split commit are same but have been
-               modified in the other branch */
             for (String file : allFiles) {
                 if (fileExistsIn(file, splitSet, currSet, otherSet)) {
                     if (sameFileIn(file, splitTree, currTree)
                         && !sameFileIn(file, splitTree, otherTree)) {
+                        /* Case 1 : Files in curr branch and split commit are same but have been
+                        modified in the other branch */
                         indexTree.getMap().put(file, otherTree.getMap().get(file));
                         overwriteFile(file, otherTree.getMap().get(file), CWD);
                     } else if (sameFileIn(file, splitTree, otherTree)
                         && !sameFileIn(file, splitTree, currTree)) {
+                        /* Case 2 : Files in other branch and split commit are same but have been
+                        modified in the curr branch */
                         break;
+                    } else if (fileExistsIn(file, currSet, otherSet)
+                        && !sameFileIn(file, currTree, otherTree)) {
+                        File f1 = join(BLOB_DIR, currTree.getMap().get(file));
+                        //System.out.println("f1 :" + currTree.getMap().get(file));
+                        File f2 = join(BLOB_DIR, otherTree.getMap().get(file));
+                        //System.out.println("f2 :" + otherTree.getMap().get(file));
+                        String mergedFile = mergeFileContents(f1, f2);
+                        //System.out.println("Merged Contents : " + mergedFile);
+                        writeContents(join(CWD, file), mergedFile);
+                        addToIndex(file);
+                        conflictFlag = true;
+                        //indexTree.getMap().put(file, otherTree.getMap().get(file));
                     }
                 } else if (fileExistsIn(file, splitSet) && !fileExistsIn(file, currSet)) {
-                    break;
+                    if (fileExistsIn(file, otherSet) && currTree.getRemoveSet().contains(file)
+                        && !sameFileIn(file, splitTree, otherTree)) {
+                        File f1 = join(CWD, currTree.getMap().get(file));
+                        File f2 = join(CWD, otherTree.getMap().get(file));
+                        String mergedFile = mergeFileContents(f1, f2);
+                        writeContents(join(CWD, file), mergedFile);
+                        addToIndex(file);
+                        conflictFlag = true;
+                    } else {
+                        break;
+                    }
                 } else if (fileExistsIn(file, splitSet, currSet)
-                        && !fileExistsIn(file, otherSet)
-                        && sameFileIn(file, splitTree, currTree)) {
-                    indexTree.getRemoveSet().add(file);
-                    restrictedDelete(join(CWD, file));
+                        && !fileExistsIn(file, otherSet)) {
+                    if (sameFileIn(file, splitTree, currTree)
+                        && !otherTree.getRemoveSet().contains(file)) {
+                        indexTree.getRemoveSet().add(file);
+                        restrictedDelete(join(CWD, file));
+                    } else {
+                        File f1 = join(CWD, currTree.getMap().get(file));
+                        File f2 = join(CWD, otherTree.getMap().get(file));
+                        String mergedFile = mergeFileContents(f1, f2);
+                        writeContents(join(CWD, file), mergedFile);
+                        addToIndex(file);
+                        conflictFlag = true;
+                    }
                 } else if (!fileExistsIn(file, splitSet)) {
                     if (fileExistsIn(file, currSet) && !fileExistsIn(file, otherSet)) {
                         break;
                     } else if (!fileExistsIn(file, currSet) && fileExistsIn(file, otherSet)) {
                         indexTree.getMap().put(file, otherTree.getMap().get(file));
                         overwriteFile(file, otherTree.getMap().get(file), CWD);
+                    } else if (fileExistsIn(file, currSet) && fileExistsIn(file, otherSet)
+                        && sameFileIn(file, currTree, otherTree)) {
+                        File f1 = join(CWD, currTree.getMap().get(file));
+                        File f2 = join(CWD, otherTree.getMap().get(file));
+                        String mergedFile = mergeFileContents(f1, f2);
+                        writeContents(join(CWD, file), mergedFile);
+                        addToIndex(file);
+                        conflictFlag = true;
                     }
                 }
             }
 
             writeObject(INDEX, indexTree);
             createMergeCommit(branch);
+
+            if (conflictFlag) {
+                System.out.println("Encountered a merge conflict.");
+            }
         }
     }
 
@@ -645,6 +694,12 @@ public class Repository {
         gitlet.Tree t = readObject(INDEX, gitlet.Tree.class);
         List<String> listOfFiles = plainFilenamesIn(CWD);
 
+        if (!join(CWD, fileName).exists() && !fileInHEADCommit(fileName)
+            && !fileExistsInIndex(fileName)) {
+            System.out.println("No reason to remove the file.");
+            System.exit(0);
+        }
+
         if (fileInHEADCommit(fileName)) {
             t.getRemoveSet().add(fileName);
 
@@ -653,7 +708,6 @@ public class Repository {
             }
 
         }
-
         if (fileExistsInIndex(fileName)) {
             t.getMap().remove(fileName);
         }
