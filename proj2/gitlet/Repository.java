@@ -551,15 +551,18 @@ public class Repository {
     public static String mergeFileContents(File f1, File f2) {
         String contents1 = readContentsAsString(f1);
         String contents2 =  readContentsAsString(f2);
-        return "<<<<<<< HEAD \n" +
-                contents1 + "======= + \n" +
-                contents2 + ">>>>>>>";
+        return "<<<<<<< HEAD \n"
+                + contents1 + "======= + \n"
+                + contents2 + ">>>>>>>";
     }
 
-    public static void merge(String splitCommit, String branch) {
-        gitlet.Tree splitTree = getCommitTreeObj(getCommitObj(splitCommit, COMMIT_DIR));
-        gitlet.Tree currTree = getCommitTreeObj(getCommitObj(returnHEADPointer(), COMMIT_DIR));
-        gitlet.Tree otherTree = getCommitTreeObj(getCommitObj(latestCommitIn(branch), COMMIT_DIR));
+    public static void merge(String splitC, String branch) {
+        gitlet.Tree splitTree;
+        splitTree = getCommitTreeObj(getCommitObj(splitC, COMMIT_DIR));
+        gitlet.Tree currTree;
+        currTree = getCommitTreeObj(getCommitObj(returnHEADPointer(), COMMIT_DIR));
+        gitlet.Tree otherTree;
+        otherTree = getCommitTreeObj(getCommitObj(latestCommitIn(branch), COMMIT_DIR));
         gitlet.Tree indexTree = readObject(INDEX, gitlet.Tree.class);
 
         if (splitTree != null && currTree != null && otherTree != null) {
