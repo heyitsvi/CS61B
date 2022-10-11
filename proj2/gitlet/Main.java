@@ -17,7 +17,7 @@ public class Main {
         String firstArg = args[0];
         switch (firstArg) {
             case "init":
-                validateNumArgs("init", args, 1);
+                validateNumArgs(args, 1);
 
                 if (gitlet.Repository.checkGitDirExists()) {
                     System.out.println("A Gitlet version-control system already exists in the current directory.");
@@ -28,7 +28,7 @@ public class Main {
                 break;
 
             case "add":
-                validateNumArgs("add", args, 2);
+                validateNumArgs(args, 2);
 
                 if (!gitlet.Repository.checkGitDirExists()) {
                     System.out.println("Not in an initialized Gitlet directory.");
@@ -48,7 +48,7 @@ public class Main {
                 break;
 
             case "commit":
-                validateNumArgs("commit", args, 2);
+                validateNumArgs(args, 2);
 
                 if (!gitlet.Repository.checkGitDirExists()) {
                     System.out.println("Not in an initialized Gitlet directory.");
@@ -69,7 +69,7 @@ public class Main {
                 break;
 
             case "rm" :
-                validateNumArgs("rm", args, 2);
+                validateNumArgs(args, 2);
 
                 if (!gitlet.Repository.checkGitDirExists()) {
                     System.out.println("Not in an initialized Gitlet directory.");
@@ -80,7 +80,7 @@ public class Main {
                 break;
 
             case "log" :
-                validateNumArgs("log", args, 1);
+                validateNumArgs(args, 1);
                 if (!gitlet.Repository.checkGitDirExists()) {
                     System.out.println("Not in an initialized Gitlet directory.");
                     System.exit(0);
@@ -90,7 +90,7 @@ public class Main {
                 break;
 
             case "global-log" :
-                validateNumArgs("global-log", args, 1);
+                validateNumArgs(args, 1);
                 if (!gitlet.Repository.checkGitDirExists()) {
                     System.out.println("Not in an initialized Gitlet directory.");
                     System.exit(0);
@@ -99,7 +99,7 @@ public class Main {
                 break;
 
             case "find" :
-                validateNumArgs("find", args, 2);
+                validateNumArgs(args, 2);
                 if (!gitlet.Repository.checkGitDirExists()) {
                     System.out.println("Not in an initialized Gitlet directory.");
                     System.exit(0);
@@ -108,7 +108,7 @@ public class Main {
                 break;
 
             case "status" :
-                validateNumArgs("status", args, 1);
+                validateNumArgs(args, 1);
                 if (!gitlet.Repository.checkGitDirExists()) {
                     System.out.println("Not in an initialized Gitlet directory.");
                     System.exit(0);
@@ -118,7 +118,7 @@ public class Main {
                 break;
 
             case "branch" :
-                validateNumArgs("branch", args, 2);
+                validateNumArgs(args, 2);
                 if (!gitlet.Repository.checkGitDirExists()) {
                     System.out.println("Not in an initialized Gitlet directory.");
                     System.exit(0);
@@ -169,7 +169,7 @@ public class Main {
                 break;
 
             case "rm-branch" :
-                validateNumArgs("rm-branch", args, 2);
+                validateNumArgs(args, 2);
 
                 if (!gitlet.Repository.checkGitDirExists()) {
                     System.out.println("Not in an initialized Gitlet directory.");
@@ -190,7 +190,7 @@ public class Main {
                 break;
 
             case "reset" :
-                validateNumArgs("reset", args, 2);
+                validateNumArgs(args, 2);
 
                 if (!gitlet.Repository.checkGitDirExists()) {
                     System.out.println("Not in an initialized Gitlet directory.");
@@ -211,7 +211,7 @@ public class Main {
                 break;
 
             case "merge" :
-                validateNumArgs("merge", args, 2);
+                validateNumArgs(args, 2);
                 if (!gitlet.Repository.checkGitDirExists()) {
                     System.out.println("Not in an initialized Gitlet directory.");
                     System.exit(0);
@@ -277,11 +277,10 @@ public class Main {
      *
      * throws a RuntimeException if they do not match.
      *
-     * @param cmd Name of command you are validating
      * @param args Argument array from command line
      * @param n Number of expected arguments
      */
-    public static void validateNumArgs(String cmd, String[] args, int n) {
+    public static void validateNumArgs(String[] args, int n) {
         if (args.length != n) {
             System.out.println("Incorrect operands.");
             System.exit(0);
