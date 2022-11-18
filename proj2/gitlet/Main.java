@@ -154,7 +154,7 @@ public class Main {
                     }
                     gitlet.Repository.checkoutBranch(args[1]);
                 } else if (args.length == 3 && args[1].equals("--")) {
-                    gitlet.Repository.checkoutFile(gitlet.Repository.returnHEADPointer(), args[2]);
+                    gitlet.Repository.checkoutFile(gitlet.Repository.getLatestIDInHEAD(), args[2]);
                 } else if (args[2].equals("--") && args.length == 4) {
                     String commitInDir = gitlet.Repository.checkIfCommitExists(args[1]);
                     if (commitInDir.length() == 0) {
@@ -238,7 +238,7 @@ public class Main {
 
                 String splitCommit = gitlet.Repository.findSplitPoint(args[1]);
                 String otherBranch = gitlet.Repository.latestCommitIn(args[1]);
-                String currentBranch = gitlet.Repository.returnHEADPointer();
+                String currentBranch = gitlet.Repository.getLatestIDInHEAD();
                 if (splitCommit.equals(otherBranch)) {
                     System.out.println("Given branch is an ancestor of the current branch.");
                     System.exit(0);
@@ -265,6 +265,9 @@ public class Main {
                 break;
             case "anyUntracked" :
                 System.out.println("Result : " + gitlet.Repository.anyUntrackedFiles());
+                break;
+            case "split" :
+                gitlet.Repository.findSplitPoint(args[1]);
                 break;
             default:
                 System.out.println("No command with that name exists.");

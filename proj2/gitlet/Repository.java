@@ -1,5 +1,6 @@
 package gitlet;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -33,6 +34,8 @@ public class Repository {
     public static final File HEAD = join(GITLET_DIR, "HEAD");
     public static final File INDEX = join(GITLET_DIR, "index");
     public static final File MASTER = join(HEADS_DIR, "master");
+
+    private static String initID = null;
 
     /** Check if a Git Directory already exists */
     public static boolean checkGitDirExists() {
@@ -99,7 +102,7 @@ public class Repository {
     }
     /** Check if the same file (i.e.with the same SHA val) exists in the latest commit. */
     public static boolean sameFileInLatestCommit(String fileName, String sha) {
-        String shaInMaster = returnHEADPointer();
+        String shaInMaster = getLatestIDInHEAD();
         gitlet.Tree latestCommitTreeObj = getLatestCommitTreeObj(shaInMaster);
 
         if (latestCommitTreeObj == null || !latestCommitTreeObj.getMap().containsKey(fileName)) {
@@ -188,7 +191,7 @@ public class Repository {
         Set<String> untrackedFiles = new HashSet<>();
         Set<String> filesTracked;
         Set<String> filesStaged;
-        gitlet.Tree t = getLatestCommitTreeObj(returnHEADPointer());
+        gitlet.Tree t = getLatestCommitTreeObj(getLatestIDInHEAD());
         if (t != null) {
             filesTracked = t.getMap().keySet();
             allFilesInGit.addAll(filesTracked);
@@ -318,7 +321,7 @@ public class Repository {
      * Add the files staged for addition to the new commit obj.
      */
     public static gitlet.Tree getNewCommitObj() {
-        String prevCommitSHA = returnHEADPointer();
+        String prevCommitSHA = getLatestIDInHEAD();
         gitlet.Tree prevCommitTreeObj = getLatestCommitTreeObj(prevCommitSHA);
         gitlet.Tree indexTreeObj = readObject(INDEX, gitlet.Tree.class);
         removeFilesFromCommit(indexTreeObj.getRemoveSet(), prevCommitTreeObj);
@@ -331,7 +334,7 @@ public class Repository {
         byte[] serialiseTreeObj = serialize(newTreeObj);
         String newObjSHA = sha1(serialiseTreeObj);
 
-        String parent = returnHEADPointer();
+        String parent = getLatestIDInHEAD();
 
 
         File path = createTreeObj(serialiseTreeObj);
@@ -354,7 +357,7 @@ public class Repository {
 
     /** Creates a new branch in the HEADS_DIR */
     public static void createBranch(String branch) {
-        String activeBranchID = returnHEADPointer();
+        String activeBranchID = getLatestIDInHEAD();
 
         File newBranch = join(HEADS_DIR, branch);
 
@@ -408,7 +411,7 @@ public class Repository {
     }
 
     public static void resetToCommit(String commitID) {
-        //gitlet.Tree t1 = getLatestCommitTreeObj(returnHEADPointer());
+        //gitlet.Tree t1 = getLatestCommitTreeObj(getLatestIDInHEAD());
         gitlet.Tree t2 = getCommitTreeObj(getCommitObj(commitID, COMMIT_DIR));
         Set<String> filesToRemove = new HashSet<>(plainFilenamesIn(CWD));
         Set<String> filesOtherCommit;
@@ -453,7 +456,7 @@ public class Repository {
     public static void checkoutBranch(String branch) {
         String commitID = readContentsAsString(join(HEADS_DIR, branch));
         gitlet.Tree branchTreeObj = getCommitTreeObj(getCommitObj(commitID, COMMIT_DIR));
-        gitlet.Tree latestTreeObj = getLatestCommitTreeObj(returnHEADPointer());
+        gitlet.Tree latestTreeObj = getLatestCommitTreeObj(getLatestIDInHEAD());
         Set<String> trackedFiles;
         Set<String> branchFiles;
 
@@ -493,31 +496,107 @@ public class Repository {
         gitlet.Repository.changeActiveBranch(branch);
     }
 
+    private static HashMap<String, Integer> createGraphMap() {
+        HashMap<String, Integer> graphMap = new HashMap<>();
+        List<String> commits = plainFilenamesIn(COMMIT_DIR);
+
+        int count  = 0;
+
+        for (String commit : commits) {
+            graphMap.put(commit, count++);
+        }
+        return graphMap;
+    }
+
+    private static void printMap(HashMap<String, Integer> map) {
+        for (String key : map.keySet()) {
+            System.out.println(key + " " + map.get(key));
+        }
+    }
+
+    /**private static gitlet.GraphObj createACommitGraph( gitlet.GraphObj G) {
+        List<String> commits = plainFilenamesIn(COMMIT_DIR);
+        gitlet.GraphObj G = new gitlet.GraphObj(commits.size());
+        HashMap<String, Integer> graphMap = createGraphMap();
+
+    }**/
+
+    private static int closestVertexToNode(int[] distanceArr, Set<Integer> set) {
+        Object[] l = set.toArray();
+        int minIndex = 0;
+        int minVal = distanceArr[minIndex];
+        for (int i = 1; i < l.length; i++) {
+            if (distanceArr[i] < minVal && distanceArr[i] > 0) {
+                minIndex = i;
+                minVal = distanceArr[i];
+            }
+        }
+
+        return minIndex;
+    }
     public static String findSplitPoint(String branch) {
-        List<String> l1 = new ArrayList<>();
-        List<String> l2 = new ArrayList<>();
-
-        String currBranch = returnHEADPointer();
-        l1.add(currBranch);
-        gitlet.Commit currBranchObj = getLatestCommitObj(currBranch);
-
-        while (currBranchObj.getParent() != null) {
-            l1.add(currBranchObj.getParent());
-            currBranchObj = getCommitObj(currBranchObj.getParent(), COMMIT_DIR);
-        }
-
+        List<String> commits = plainFilenamesIn(COMMIT_DIR);
+        gitlet.GraphObj G = new gitlet.GraphObj(commits.size());
+        HashMap<String, Integer> graphMap = createGraphMap();
+        String headBranch = getLatestIDInHEAD();
+        int source1 = graphMap.get(headBranch);
         String otherBranch = readContentsAsString(join(HEADS_DIR, branch));
-        l2.add(otherBranch);
-        gitlet.Commit otherBranchObj = getLatestCommitObj(otherBranch);
+        int source2 = graphMap.get(otherBranch);
+        int dest = graphMap.get("c3c23d9fa62834d47f9bae0f0bbbd8dcd251e291");
 
-        while (otherBranchObj.getParent() != null) {
-            l2.add(otherBranchObj.getParent());
-            otherBranchObj = getCommitObj(otherBranchObj.getParent(), COMMIT_DIR);
+        for (String commit : commits) {
+            int vertex1 = graphMap.get(commit);
+            gitlet.Commit obj = getCommitObj(commit, COMMIT_DIR);
+
+            if (obj.getParent() == null) {
+                continue;
+            }
+
+            int vertex2 = graphMap.get(obj.getParent());
+            G.addEdge(vertex1, vertex2);
+
+            if (obj.getParent2() != null) {
+                int vertex3 = graphMap.get(obj.getParent2());
+                G.addEdge(vertex1, vertex3);
+            }
+
         }
 
-        List<String> commitAncestors = new ArrayList<>(l1);
-        commitAncestors.retainAll(l2);
-        return commitAncestors.get(0);
+        gitlet.Paths paths1 = new gitlet.Paths(G, source1, dest);
+        gitlet.Paths paths2 = new gitlet.Paths(G, source2, dest);
+
+        Set<Integer> currBranchSet = new HashSet<>();
+        for (List<Integer> path : paths1.allPaths()) {
+            currBranchSet.addAll(path);
+        }
+
+        Set<Integer> otherBranchSet = new HashSet<>();
+        for (List<Integer> path : paths2.allPaths()) {
+            otherBranchSet.addAll(path);
+        }
+        otherBranchSet.retainAll(currBranchSet);
+        int latestCommonNode = dest;
+        if (otherBranchSet.size() == 2) {
+            for (int i : otherBranchSet) {
+                if (i != dest) {
+                    latestCommonNode = i;
+                }
+            }
+        } else if (otherBranchSet.size() > 2) {
+            currBranchSet.remove(dest);
+            latestCommonNode = closestVertexToNode(paths2.getDistances(), otherBranchSet);
+        }
+
+        String splitID = null;
+
+        for (String id : graphMap.keySet()) {
+            if (graphMap.get(id).equals(latestCommonNode)) {
+                splitID = id;
+                break;
+            }
+        }
+
+        return splitID;
     }
 
     /**public static Set<String> getDifference(Object o1, Object o2) {
@@ -575,14 +654,14 @@ public class Repository {
         File f2 = join(BLOB_DIR, t2.getMap().get(file));
         String contents1 = readContentsAsString(f1);
         String contents2 =  readContentsAsString(f2);
-        return "<<<<<<< HEAD \n"
+        return "<<<<<<< HEAD" + "\n"
                 + contents1 + "=======" + "\n"
                 + contents2 + ">>>>>>>";
     }
 
     public static void merge(String splitC, String branch) {
         gitlet.Tree splitT = getCommitTreeObj(getCommitObj(splitC, COMMIT_DIR));
-        gitlet.Tree currT = getCommitTreeObj(getCommitObj(returnHEADPointer(), COMMIT_DIR));
+        gitlet.Tree currT = getCommitTreeObj(getCommitObj(getLatestIDInHEAD(), COMMIT_DIR));
         gitlet.Tree otherT = getCommitTreeObj(getCommitObj(latestCommitIn(branch), COMMIT_DIR));
         gitlet.Tree indexT = readObject(INDEX, gitlet.Tree.class);
         if (currT != null && otherT != null) {
@@ -663,7 +742,7 @@ public class Repository {
 
     /** Check if the latest commit in the current branch tracks this file */
     public static boolean fileInHEADCommit(String fileName) {
-        gitlet.Tree latestCommitTreeObj = getLatestCommitTreeObj(returnHEADPointer());
+        gitlet.Tree latestCommitTreeObj = getLatestCommitTreeObj(getLatestIDInHEAD());
         if (latestCommitTreeObj == null) {
             return false;
         }
@@ -693,7 +772,7 @@ public class Repository {
 
     /** Unstage the file if it is currently staged for addition.
      *  If the file is tracked in the current commit, stage it for removal
-     *  and remove the file from the working directory if the user has not already done s.
+     *  and remove the file from the working directory if the user has not already done so.
      * @param fileName Name of the file that needs to be staged for removal.
      */
 
@@ -758,7 +837,7 @@ public class Repository {
     /** Traverse commits starting from the HEAD commit to the initial commit
      * and display their log msg */
     public static void printLog() {
-        String latestCommitID = returnHEADPointer();
+        String latestCommitID = getLatestIDInHEAD();
 
         gitlet.Commit prevCommitObj = getLatestCommitObj(latestCommitID);
 
@@ -865,7 +944,7 @@ public class Repository {
     }
 
     /** Return the most recent commit id of the branch HEAD points at */
-    public static String returnHEADPointer() {
+    public static String getLatestIDInHEAD() {
         String branch = readContentsAsString(HEAD);
         return readContentsAsString(join(HEADS_DIR, branch));
     }
@@ -947,7 +1026,7 @@ public class Repository {
 
         /* Serialise the commit, hash it using SHA1 and create a commit object. */
         byte[] serialisedCommit = serialize(c);
-
+        initID = sha1(serialisedCommit);
         File f = createCommitObj(serialisedCommit);
 
         writeContents(HEAD, "master");
