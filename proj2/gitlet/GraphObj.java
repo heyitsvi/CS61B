@@ -3,8 +3,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GraphObj {
-    private final int V;
-    private final List<Integer>[] adj;
+    private int V;
+    private List<Integer>[] adj;
 
     public GraphObj(int V) {
         this.V = V;

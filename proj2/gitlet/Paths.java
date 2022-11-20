@@ -6,6 +6,8 @@ import java.util.List;
 public class Paths {
     private boolean[] marked;
     private List<List<Integer>> allPaths;
+
+    private List<Integer> localPathList;
     private int[] distTo;
     //private int[] edgeTo;
     private int s;
@@ -13,12 +15,13 @@ public class Paths {
     public Paths(gitlet.GraphObj G, int s, int d) {
         this.s = s;
         marked = new boolean[G.getV()];
+        Arrays.fill(marked, false);
         distTo = new int[G.getV()];
-        Arrays.fill(distTo, 10000);
+        Arrays.fill(distTo, -1);
         distTo[s] = 0;
 
         allPaths = new ArrayList<>();
-        List<Integer> localPathList = new ArrayList<>();
+        localPathList = new ArrayList<>();
         localPathList.add(s);
 
         allPaths(G, s, d, marked, localPathList);
@@ -36,7 +39,6 @@ public class Paths {
             allPaths.add(res);
         } else {
             visited[u] = true;
-
             for (int i : G.adj(u)) {
                 if (!visited[i]) {
                     list.add(i);
@@ -45,7 +47,6 @@ public class Paths {
                     list.remove(list.size() - 1);
                 }
             }
-
             visited[u] = false;
         }
     }

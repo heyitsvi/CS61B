@@ -1,6 +1,7 @@
 package gitlet;
 
 
+
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -336,7 +337,6 @@ public class Repository {
 
         String parent = getLatestIDInHEAD();
 
-
         File path = createTreeObj(serialiseTreeObj);
         writeObject(path, newTreeObj);
 
@@ -521,29 +521,33 @@ public class Repository {
 
     }**/
 
-    private static int closestVertexToNode(int[] distanceArr, Set<Integer> set) {
-        Object[] l = set.toArray();
-        int minIndex = 0;
-        int minVal = distanceArr[minIndex];
-        for (int i = 1; i < l.length; i++) {
-            if (distanceArr[i] < minVal && distanceArr[i] > 0) {
-                minIndex = i;
-                minVal = distanceArr[i];
-            }
+    private static int closestVertexToNodes(int[] distArr1, int[] distArr2, Set<Integer> set) {
+        TreeMap<Integer, Integer> nodeDistances = new TreeMap<>();
+        for (int i : set) {
+            nodeDistances.put(i, distArr1[i] + distArr2[i]);
         }
 
-        return minIndex;
+        int minDistance = Collections.min(nodeDistances.values());
+        for (int key : nodeDistances.keySet()) {
+            if (nodeDistances.get(key) == minDistance) {
+                return key;
+            }
+        }
+        return -1;
     }
     public static String findSplitPoint(String branch) {
         List<String> commits = plainFilenamesIn(COMMIT_DIR);
         gitlet.GraphObj G = new gitlet.GraphObj(commits.size());
         HashMap<String, Integer> graphMap = createGraphMap();
+        //printMap(graphMap);
         String headBranch = getLatestIDInHEAD();
         int source1 = graphMap.get(headBranch);
+        //System.out.println("s1 : " + source1);
         String otherBranch = readContentsAsString(join(HEADS_DIR, branch));
         int source2 = graphMap.get(otherBranch);
+        //System.out.println("s2 : " + source2);
         int dest = graphMap.get("c3c23d9fa62834d47f9bae0f0bbbd8dcd251e291");
-
+        //System.out.println("dest : " + dest);
         for (String commit : commits) {
             int vertex1 = graphMap.get(commit);
             gitlet.Commit obj = getCommitObj(commit, COMMIT_DIR);
@@ -561,17 +565,24 @@ public class Repository {
             }
 
         }
-
+        /**for (int i = 0; i < G.getV(); i++) {
+            for (int w : G.adj(i)) {
+                System.out.println(i + "-->" + w);
+            }
+        }**/
         gitlet.Paths paths1 = new gitlet.Paths(G, source1, dest);
         gitlet.Paths paths2 = new gitlet.Paths(G, source2, dest);
 
         Set<Integer> currBranchSet = new HashSet<>();
+        //System.out.println("Paths from S1 : ");
         for (List<Integer> path : paths1.allPaths()) {
+            //System.out.println(path.toString());
             currBranchSet.addAll(path);
         }
-
         Set<Integer> otherBranchSet = new HashSet<>();
+        //System.out.println("Paths from S2 : ");
         for (List<Integer> path : paths2.allPaths()) {
+            //System.out.println(path.toString());
             otherBranchSet.addAll(path);
         }
         otherBranchSet.retainAll(currBranchSet);
@@ -583,8 +594,10 @@ public class Repository {
                 }
             }
         } else if (otherBranchSet.size() > 2) {
-            currBranchSet.remove(dest);
-            latestCommonNode = closestVertexToNode(paths2.getDistances(), otherBranchSet);
+            otherBranchSet.remove(dest);
+            int[] distFromHEAD = paths1.getDistances();
+            int[] distFromOther = paths2.getDistances();
+            latestCommonNode = closestVertexToNodes(distFromHEAD, distFromOther, otherBranchSet);
         }
 
         String splitID = null;
@@ -595,7 +608,7 @@ public class Repository {
                 break;
             }
         }
-
+        //System.out.println("Split ID : " + splitID);
         return splitID;
     }
 
@@ -654,9 +667,10 @@ public class Repository {
         File f2 = join(BLOB_DIR, t2.getMap().get(file));
         String contents1 = readContentsAsString(f1);
         String contents2 =  readContentsAsString(f2);
-        return "<<<<<<< HEAD" + "\n"
-                + contents1 + "=======" + "\n"
-                + contents2 + ">>>>>>>";
+
+        return "<<<<<<< HEAD\n"
+                + contents1 + "=======\n"
+                + contents2 + ">>>>>>>\n";
     }
 
     public static void merge(String splitC, String branch) {
@@ -700,7 +714,6 @@ public class Repository {
                 } else if (fileExistsIn(file, splitSet) && !fileExistsIn(file, currSet)) {
                     if (fileExistsIn(file, otherSet) && currT.getRemoveSet().contains(file)
                         && !sameFileIn(file, splitT, otherT)) {
-                        String mergedFile = mergeFileContents(file, currT, otherT);
                         writeContents(join(CWD, file), mergeFileContents(file, currT, otherT));
                         addToIndex(file);
                         conflictFlag = true;
