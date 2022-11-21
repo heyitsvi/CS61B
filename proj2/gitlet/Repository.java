@@ -371,7 +371,7 @@ public class Repository {
 
     }
 
-    /** Overwrite the file in a directory with its previous version from a commit */
+    /** Overwrite the file in a directory with a different version from a commit */
     public static void overwriteFile(String fileName, String savedFile, File dir) {
         File f = join(dir, fileName);
         String contents = readContentsAsString(join(BLOB_DIR, savedFile));
@@ -663,15 +663,130 @@ public class Repository {
         return true;
     }
     public static String mergeFileContents(String file, gitlet.Tree t1, gitlet.Tree t2) {
-        File f1 = join(BLOB_DIR, t1.getMap().get(file));
-        File f2 = join(BLOB_DIR, t2.getMap().get(file));
-        String contents1 = readContentsAsString(f1);
-        String contents2 =  readContentsAsString(f2);
+        if (t1 != null && t2 != null) {
+            File f1 = join(BLOB_DIR, t1.getMap().get(file));
+            File f2 = join(BLOB_DIR, t2.getMap().get(file));
+            String contents1 = readContentsAsString(f1);
+            String contents2 =  readContentsAsString(f2);
+            return "<<<<<<< HEAD\n"
+                    + contents1 + "=======\n"
+                    + contents2 + ">>>>>>>\n";
+        } else if (t2 == null && t1 != null) {
+            File f1 = join(BLOB_DIR, t1.getMap().get(file));
+            String contents1 = readContentsAsString(f1);
+            String contents2 =  "";
+            return "<<<<<<< HEAD\n"
+                    + contents1 + "=======\n"
+                    + contents2 + ">>>>>>>\n";
+        } else {
+            File f2 = join(BLOB_DIR, t2.getMap().get(file));
+            String contents1 = "";
+            String contents2 =  readContentsAsString(f2);
+            return "<<<<<<< HEAD\n"
+                    + contents1 + "=======\n"
+                    + contents2 + ">>>>>>>\n";
+        }
 
-        return "<<<<<<< HEAD\n"
-                + contents1 + "=======\n"
-                + contents2 + ">>>>>>>\n";
     }
+
+    public static void removeFilesFromDIR(File dir, Set<String> ...filesToKeep) {
+        List<String> filesInDIR = plainFilenamesIn(dir);
+        Set<String> filesToRemove = new HashSet<>(filesInDIR);
+        for (Set<String> s : filesToKeep) {
+            filesToRemove.removeAll(s);
+        }
+        for (String file : filesToRemove) {
+            restrictedDelete(file);
+        }
+    }
+
+    /**static void merge(String splitC, String branch) {
+        gitlet.Tree splitT = getCommitTreeObj(getCommitObj(splitC, COMMIT_DIR));
+        gitlet.Tree currT = getCommitTreeObj(getCommitObj(getLatestIDInHEAD(), COMMIT_DIR));
+        gitlet.Tree otherT = getCommitTreeObj(getCommitObj(latestCommitIn(branch), COMMIT_DIR));
+        gitlet.Tree indexT = readObject(INDEX, gitlet.Tree.class);
+        if (currT != null && otherT != null) {
+            Set<String> currSet = new HashSet<>(currT.getMap().keySet());
+            currSet.addAll(currT.getRemoveSet());
+            Set<String> otherSet = new HashSet<>(otherT.getMap().keySet());
+            otherSet.addAll(otherT.getRemoveSet());
+            Set<String> splitSet = null;
+            Set<String> allFiles = new HashSet<>(currSet);
+            allFiles.addAll(otherSet);
+            if (splitT != null) {
+                splitSet = new HashSet<>(splitT.getMap().keySet());
+                splitSet.addAll(splitT.getRemoveSet());
+                allFiles.addAll(splitSet);
+                removeFilesFromDIR(CWD, splitSet);
+            }
+            removeFilesFromDIR(CWD, currSet, otherSet);
+            boolean conflictFlag = false;
+            for (String file : allFiles) {
+                if (fileExistsIn(file, splitSet, currSet) && sameFileIn(file, splitT, currT)) {
+                    if (!fileExistsIn(file, otherSet)) {
+                        indexT.getRemoveSet().add(file);
+                        restrictedDelete(file);
+                    } else if (fileExistsIn(file, otherSet) && !sameFileIn(file, splitT, otherT)) {
+                        indexT.getMap().put(file, otherT.getMap().get(file));
+                        overwriteFile(file, otherT.getMap().get(file), CWD);
+                    }
+                } else if (!fileExistsIn(file, splitSet)) {
+                    if (fileExistsIn(file, otherSet) && !fileExistsIn(file, currSet)) {
+                        indexT.getMap().put(file, otherT.getMap().get(file));
+                        File f = join(CWD, file);
+                        createFileWithContents(f, join(BLOB_DIR, otherT.getMap().get(file)));
+                    }
+                } else if (fileExistsIn(file, splitSet, currSet)
+                        && !sameFileIn(file, splitT, currT)) {
+                    if (!fileExistsIn(file, otherSet) ||
+                        (!sameFileIn(file, splitT, otherT) &&
+                            !sameFileIn(file, currT, otherT))) {
+                        writeContents(join(CWD, file), mergeFileContents(file, currT, otherT));
+                        addToIndex(file);
+                        conflictFlag = true;
+                    }
+                }
+            }
+
+            for (String file : allFiles) {
+                if (fileExistsIn(file, splitSet, currSet, otherSet)) {
+                    if (sameFileIn(file, splitT, currT) &&
+                    !sameFileIn(file, splitT, otherT)) {
+                        indexT.getMap().put(file, otherT.getMap().get(file));
+                        overwriteFile(file, otherT.getMap().get(file), CWD);
+                    } else if (!sameFileIn(file, splitT, currT) &&
+                    !(sameFileIn(file, splitT, otherT)) &&
+                    !(sameFileIn(file, otherT, currT))) {
+                        writeContents(join(CWD, file), mergeFileContents(file, currT, otherT));
+                        addToIndex(file);
+                        conflictFlag = true;
+                    }
+                } else if (fileExistsIn(file, splitSet, currSet) &&
+                    !fileExistsIn(file, otherSet)) {
+                    if (sameFileIn(file, splitT, currT)) {
+                        indexT.getRemoveSet().add(file);
+                        restrictedDelete(join(CWD, file));
+                    } else {
+                        writeContents(join(CWD, file), mergeFileContents(file, currT, otherT));
+                        addToIndex(file);
+                        conflictFlag = true;
+                    }
+                } else if (!fileExistsIn(file, splitSet)) {
+                    if (!fileExistsIn(file, currSet) &&
+                        fileExistsIn(file, otherSet)) {
+                        indexT.getMap().put(file, otherT.getMap().get(file));
+                        File f = join(CWD, file);
+                        createFileWithContents(f , join(BLOB_DIR, otherT.getMap().get(file)));
+                    }
+                }
+            }
+            writeObject(INDEX, indexT);
+            createMergeCommit(branch);
+            if (conflictFlag) {
+                System.out.println("Encountered a merge conflict.");
+            }
+        }
+    }**/
 
     public static void merge(String splitC, String branch) {
         gitlet.Tree splitT = getCommitTreeObj(getCommitObj(splitC, COMMIT_DIR));
@@ -712,27 +827,27 @@ public class Repository {
                         conflictFlag = true;
                     }
                 } else if (fileExistsIn(file, splitSet) && !fileExistsIn(file, currSet)) {
-                    if (fileExistsIn(file, otherSet) && currT.getRemoveSet().contains(file)
-                        && !sameFileIn(file, splitT, otherT)) {
+                    if (fileExistsIn(file, otherSet) && !sameFileIn(file, splitT, otherT)) {
                         writeContents(join(CWD, file), mergeFileContents(file, currT, otherT));
                         addToIndex(file);
                         conflictFlag = true;
                     }
                 } else if (fileExistsIn(file, splitSet, currSet)
                         && !fileExistsIn(file, otherSet)) {
-                    if (sameFileIn(file, splitT, currT) && !otherT.getRemoveSet().contains(file)) {
+                    if (sameFileIn(file, splitT, currT)) {
                         indexT.getRemoveSet().add(file);
                         restrictedDelete(join(CWD, file));
-                    } else if (!sameFileIn(file, splitT, currT)
-                        && otherT.getRemoveSet().contains(file)) {
-                        writeContents(join(CWD, file), mergeFileContents(file, currT, otherT));
+                    } else {
+                        writeContents(join(CWD, file), mergeFileContents(file, currT, null));
                         addToIndex(file);
                         conflictFlag = true;
                     }
                 } else if (!fileExistsIn(file, splitSet)) {
                     if (!fileExistsIn(file, currSet) && fileExistsIn(file, otherSet)) {
                         indexT.getMap().put(file, otherT.getMap().get(file));
-                        overwriteFile(file, otherT.getMap().get(file), CWD);
+                        File f = join(CWD, file);
+                        File f2 = join(BLOB_DIR, otherT.getMap().get(file));
+                        createFileWithContents(f, f2);
                     } else if ((fileExistsIn(file, currSet) && fileExistsIn(file, otherSet)
                         && !sameFileIn(file, currT, otherT))
                         || ((fileExistsIn(file, currSet) && !fileExistsIn(file, otherSet)
