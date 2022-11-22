@@ -6,14 +6,10 @@ import java.util.List;
 public class Paths {
     private boolean[] marked;
     private List<List<Integer>> allPaths;
-
     private List<Integer> localPathList;
     private int[] distTo;
-    //private int[] edgeTo;
-    private int s;
 
     public Paths(gitlet.GraphObj G, int s, int d) {
-        this.s = s;
         marked = new boolean[G.getV()];
         Arrays.fill(marked, false);
         distTo = new int[G.getV()];

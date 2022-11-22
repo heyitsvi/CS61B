@@ -253,22 +253,6 @@ public class Main {
                 gitlet.Repository.merge(splitCommit, args[1]);
 
                 break;
-            case "untracked" :
-                Set<String> files = gitlet.Repository.getUntrackedFiles(gitlet.Repository.CWD);
-                if (files == null) {
-                    System.out.println("null result");
-                    System.exit(0);
-                }
-                for (String file : files) {
-                    System.out.println(file);
-                }
-                break;
-            case "anyUntracked" :
-                System.out.println("Result : " + gitlet.Repository.anyUntrackedFiles());
-                break;
-            case "split" :
-                gitlet.Repository.findSplitPoint(args[1]);
-                break;
             default:
                 System.out.println("No command with that name exists.");
                 System.exit(0);
