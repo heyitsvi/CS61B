@@ -65,7 +65,7 @@ public class Main {
                     System.exit(0);
                 }
 
-                gitlet.Repository.createANewCommit(args[1], "regular", null);
+                gitlet.Commit.createANewCommit(args[1], "regular", null);
                 break;
 
             case "rm" :
@@ -86,7 +86,7 @@ public class Main {
                     System.exit(0);
                 }
 
-                gitlet.Repository.printLog();
+                gitlet.Commit.printLog();
                 break;
 
             case "global-log" :
@@ -95,7 +95,7 @@ public class Main {
                     System.out.println("Not in an initialized Gitlet directory.");
                     System.exit(0);
                 }
-                gitlet.Repository.printAllCommits();
+                gitlet.Commit.printAllCommits();
                 break;
 
             case "find" :
@@ -104,7 +104,7 @@ public class Main {
                     System.out.println("Not in an initialized Gitlet directory.");
                     System.exit(0);
                 }
-                gitlet.Repository.findMsgInCommits(args[1]);
+                gitlet.Commit.findMsgInCommits(args[1]);
                 break;
 
             case "status" :
@@ -156,7 +156,7 @@ public class Main {
                 } else if (args.length == 3 && args[1].equals("--")) {
                     gitlet.Repository.checkoutFile(gitlet.Repository.getLatestIDInHEAD(), args[2]);
                 } else if (args[2].equals("--") && args.length == 4) {
-                    String commitInDir = gitlet.Repository.checkIfCommitExists(args[1]);
+                    String commitInDir = gitlet.Commit.checkIfCommitExists(args[1]);
                     if (commitInDir.length() == 0) {
                         System.out.println("No commit with that id exists.");
                         System.exit(0);
@@ -202,12 +202,12 @@ public class Main {
                     System.exit(0);
                 }
 
-                String commitInDir = gitlet.Repository.checkIfCommitExists(args[1]);
+                String commitInDir = gitlet.Commit.checkIfCommitExists(args[1]);
                 if (commitInDir.length() == 0) {
                     System.out.println("No commit with that id exists.");
                     System.exit(0);
                 }
-                gitlet.Repository.resetToCommit(commitInDir);
+                gitlet.Commit.resetToCommit(commitInDir);
                 break;
 
             case "merge" :

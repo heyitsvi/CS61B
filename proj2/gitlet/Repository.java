@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import static gitlet.Commit.*;
+import static gitlet.GraphObj.closestVertexToNodes;
+import static gitlet.GraphObj.createGraphMap;
 import static gitlet.Utils.*;
 
 /** Represents a gitlet repository.
@@ -47,8 +50,6 @@ public class Repository {
 
     /** Check if the same branch already exists in the directory */
     public static boolean branchExists(String branch) {
-        /**List<String> listOfFileNames = plainFilenamesIn(HEADS_DIR);
-        return listOfFileNames.contains(branch);*/
         return fileExistsInDir(branch, HEADS_DIR);
     }
 
@@ -92,17 +93,7 @@ public class Repository {
         gitlet.Tree t = readObject(INDEX, gitlet.Tree.class);
         return t.getMap().containsKey(fileName);
     }
-    /** Check if the same file (i.e.with the same SHA val) exists in the latest commit. */
-    public static boolean sameFileInLatestCommit(String fileName, String sha) {
-        String shaInMaster = getLatestIDInHEAD();
-        gitlet.Tree latestCommitTreeObj = getLatestCommitTreeObj(shaInMaster);
 
-        if (latestCommitTreeObj == null || !latestCommitTreeObj.getMap().containsKey(fileName)) {
-            return false;
-        }
-
-        return latestCommitTreeObj.getMap().get(fileName).equals(sha);
-    }
 
     /** Check if there are untracked files in the CWD */
     public static boolean anyUntrackedFiles() {
@@ -153,12 +144,6 @@ public class Repository {
         return createObjectFile(o, TREE_DIR);
     }
 
-    /** Get the commit object from a directory */
-    public static gitlet.Commit getCommitObj(String fileName, File dir) {
-        File filePath = join(dir, fileName);
-        return readObject(filePath, gitlet.Commit.class);
-    }
-
     /**
      * Get the untracked files in the given directory
      * @param dir directory to check for files
@@ -197,27 +182,6 @@ public class Repository {
             }
         }
         return new HashSet<>(untrackedFiles);
-    }
-
-    /** Get the tree object from a commit */
-    public static gitlet.Tree getCommitTreeObj(gitlet.Commit c) {
-        String treeSHA = c.getTree();
-
-        if (treeSHA == null) {
-            return null;
-        }
-        File filePath = join(TREE_DIR, treeSHA);
-        return readObject(filePath, gitlet.Tree.class);
-    }
-
-    /** Get the latest commit obj */
-    public static gitlet.Commit getLatestCommitObj(String commitID) {
-        return getCommitObj(commitID, COMMIT_DIR);
-    }
-
-    /** Get the tree object from the latest commit */
-    public static gitlet.Tree getLatestCommitTreeObj(String commitID) {
-        return getCommitTreeObj(getLatestCommitObj(commitID));
     }
 
     /** Clear the staging area by removing all the (fileName : SHA val) mappings */
@@ -273,45 +237,6 @@ public class Repository {
         return t;
     }
 
-    /** Merge index and the latest commit to create the new commit obj
-     * Remove the files staged for removal
-     * Add the files staged for addition to the new commit obj.
-     */
-    public static gitlet.Tree getNewCommitObj() {
-        String prevCommitSHA = getLatestIDInHEAD();
-        gitlet.Tree prevCommitTreeObj = getLatestCommitTreeObj(prevCommitSHA);
-        gitlet.Tree indexTreeObj = readObject(INDEX, gitlet.Tree.class);
-        removeFilesFromCommit(indexTreeObj.getRemoveSet(), prevCommitTreeObj);
-        return mergeObjs(prevCommitTreeObj, indexTreeObj);
-    }
-
-    /** Create a new commit with the given message, can be a merge or regular
-     * commit. */
-    public static void createANewCommit(String msg, String type, String branch) {
-        gitlet.Tree newTreeObj = getNewCommitObj();
-        byte[] serialiseTreeObj = serialize(newTreeObj);
-        String newObjSHA = sha1(serialiseTreeObj);
-
-        String parent = getLatestIDInHEAD();
-
-        File path = createTreeObj(serialiseTreeObj);
-        writeObject(path, newTreeObj);
-
-        gitlet.Commit newCommit;
-
-        if (type.equals("regular")) {
-            newCommit = gitlet.Commit.createCommit(msg, parent, new Date(), newObjSHA);
-        } else {
-            newCommit = gitlet.Commit.createMergeCommit(msg, parent, new Date(), newObjSHA, branch);
-        }
-        byte[] serialisedCommit = serialize(newCommit);
-        File newCommitFile = createCommitObj(serialisedCommit);
-        writeObject(newCommitFile, newCommit);
-
-        updateActiveBranch(serialisedCommit);
-        clearStagingArea();
-    }
-
     /** Creates a new branch in the HEADS_DIR */
     public static void createBranch(String branch) {
         String activeBranchID = getLatestIDInHEAD();
@@ -351,10 +276,6 @@ public class Repository {
         return "";
     }
 
-    /** Check if a commit with the given id exits **/
-    public static String checkIfCommitExists(String commitID) {
-        return findFileInDir(commitID, COMMIT_DIR);
-    }
     /** Checkout a file in a particular commit. **/
     public static void checkoutFile(String commitID, String fileName) {
         gitlet.Tree treeObj = getCommitTreeObj(getCommitObj(commitID, COMMIT_DIR));
@@ -369,34 +290,7 @@ public class Repository {
         }
     }
 
-    /** Reset the CWD to the given Commit **/
-    public static void resetToCommit(String commitID) {
-        gitlet.Tree t2 = getCommitTreeObj(getCommitObj(commitID, COMMIT_DIR));
-        Set<String> filesToRemove = new HashSet<>(plainFilenamesIn(CWD));
-        Set<String> filesOtherCommit;
 
-        if (t2 != null) {
-            filesOtherCommit = t2.getMap().keySet();
-            for (String file : filesOtherCommit) {
-                if (join(CWD, file).exists()) {
-                    overwriteFile(file, t2.getMap().get(file), CWD);
-                } else {
-                    createFileWithContents(join(CWD, file), join(BLOB_DIR, t2.getMap().get(file)));
-                }
-            }
-            filesToRemove.removeAll(filesOtherCommit);
-        }
-
-        for (String file : filesToRemove) {
-            restrictedDelete(file);
-        }
-
-        if (INDEX.exists()) {
-            clearStagingArea();
-        }
-        String branch = getActiveBranch();
-        writeContents(join(HEADS_DIR, branch), commitID);
-    }
     /** Create a new file with the contents of the blob specified
      * in the content path **/
     public static void createFileWithContents(File fileName, File contentPath) {
@@ -455,47 +349,6 @@ public class Repository {
     }
 
     /**
-     * Create a mapping of random Node Integer Vals with their corresponding file
-     * names.
-     * @return Map of FileNames and their Node Vals in the graph.
-     */
-    private static HashMap<String, Integer> createGraphMap() {
-        HashMap<String, Integer> graphMap = new HashMap<>();
-        List<String> commits = plainFilenamesIn(COMMIT_DIR);
-
-        int count  = 0;
-
-        for (String commit : commits) {
-            graphMap.put(commit, count++);
-        }
-        return graphMap;
-    }
-
-    /**
-     * Find the closest vertex common between source 1 and source 2 in the DAG.
-     * @param distArr1 Distance Array with distances of various nodes from source 1 (HEAD)
-     * @param distArr2 Distance Array with distances of various nodes from source 2 (Given Branch)
-     * @param set Set containing the common nodes in the paths from source 1 and source 2
-     *            to the very first commit.
-     * @return Closest node to source 1 and source 2 from the set of all common nodes.
-     */
-    private static int closestVertexToNodes(int[] distArr1, int[] distArr2, Set<Integer> set) {
-        TreeMap<Integer, Integer> nodeDistances = new TreeMap<>();
-        for (int i : set) {
-            nodeDistances.put(i, distArr1[i] + distArr2[i]);
-        }
-
-        int minDistance = Collections.min(nodeDistances.values());
-        for (int key : nodeDistances.keySet()) {
-            if (nodeDistances.get(key) == minDistance) {
-                return key;
-            }
-        }
-        return -1;
-    }
-
-    /**
-     *
      * @param branch Name of the given branch
      * @return Commit ID of the latest common ancestor (split point)
      */
@@ -507,7 +360,7 @@ public class Repository {
         int source1 = graphMap.get(headBranch);
         String otherBranch = readContentsAsString(join(HEADS_DIR, branch));
         int source2 = graphMap.get(otherBranch);
-        int dest = graphMap.get("c3c23d9fa62834d47f9bae0f0bbbd8dcd251e291");
+        int dest = graphMap.get(gitlet.Commit.findInitCommitSHA());
         for (String commit : commits) {
             int vertex1 = graphMap.get(commit);
             gitlet.Commit obj = getCommitObj(commit, COMMIT_DIR);
@@ -563,12 +416,6 @@ public class Repository {
         return splitID;
     }
 
-    /** Create a merge commit with the given branch and the head branch **/
-    public static void createMergeCommit(String branch) {
-        String msg  = "Merged " + branch + " into " + readContentsAsString(HEAD) + ".";
-        String branchID = readContentsAsString(join(HEADS_DIR, branch));
-        createANewCommit(msg, "merge", branchID);
-    }
     /** Check if the same file exists in both the given Tree Objects **/
     public static boolean sameFileIn(String file, gitlet.Tree m1, gitlet.Tree m2) {
         if (!m2.getMap().containsKey(file)) {
@@ -695,30 +542,11 @@ public class Repository {
         }
     }
 
-    /** Check if the latest commit in the current branch tracks this file */
-    public static boolean fileInHEADCommit(String fileName) {
-        gitlet.Tree latestCommitTreeObj = getLatestCommitTreeObj(getLatestIDInHEAD());
-        if (latestCommitTreeObj == null) {
-            return false;
-        }
-        return latestCommitTreeObj.getMap().containsKey(fileName);
-    }
-
     /** Delete the given branch if it exists **/
     public static void removeBranch(String branch) {
         File f = join(HEADS_DIR, branch);
         if (!f.isDirectory()) {
             f.delete();
-        }
-    }
-
-    /** Remove the files from the commit if they are staged for removal
-     * @param removeFiles Set containing the names of the files that need to be removed.
-     * @param commitTree The Tree Object that
-     * */
-    public static void removeFilesFromCommit(Set<String> removeFiles, gitlet.Tree commitTree) {
-        for (String file : removeFiles) {
-            commitTree.getMap().remove(file);
         }
     }
 
@@ -758,80 +586,6 @@ public class Repository {
     public static String formatDate(Date d) {
         SimpleDateFormat df = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z");
         return df.format(d);
-    }
-
-    /** Generate the log msg from the commit object
-     * @param c Commit object that contains info to display.
-     * @return Log Message
-     * */
-    public static String generateLogMsg(gitlet.Commit c) {
-        String commit = sha1(serialize(c));
-        String msg = c.getMsg();
-        Date date = c.getDate();
-        String formattedDate = formatDate(date);
-        String parent = c.getParent();
-        String parent2 = c.getParent2();
-
-        if (parent2 == null) {
-            return "=== \n"
-                    + "commit " + commit + "\n"
-                    + "Date: " + formattedDate + "\n"
-                    + msg + "\n";
-        } else {
-            return "=== \n"
-                    + "commit " + commit + "\n"
-                    + "Merge: " + parent.substring(0, 7) + " " + parent2.substring(0, 7)
-                    + "\n" + "Date: " + formattedDate + "\n"
-                    + msg + "\n";
-        }
-    }
-
-    /** Traverse commits starting from the HEAD commit to the initial commit
-     * and display their log msg */
-    public static void printLog() {
-        String latestCommitID = getLatestIDInHEAD();
-
-        gitlet.Commit prevCommitObj = getLatestCommitObj(latestCommitID);
-
-        while (prevCommitObj.getParent() != null) {
-            System.out.println(generateLogMsg(prevCommitObj));
-            prevCommitObj = getLatestCommitObj(prevCommitObj.getParent());
-        }
-        System.out.println(generateLogMsg(prevCommitObj));
-    }
-
-    /** Get the list of all commit files in lexicographical order and print the commits */
-    public static void printAllCommits() {
-        List<String> files = plainFilenamesIn(COMMIT_DIR);
-
-        for (String file : files) {
-            File f = join(COMMIT_DIR, file);
-            gitlet.Commit commitObj = readObject(join(COMMIT_DIR, file), gitlet.Commit.class);
-            System.out.println(generateLogMsg(commitObj));
-        }
-    }
-
-    /** Get the list of all commit files in lexicographical order and print the commits
-     * that contain the specified msg.
-     * @param msg The msg to search for
-     * */
-    public static void findMsgInCommits(String msg) {
-        List<String> files = plainFilenamesIn(COMMIT_DIR);
-        boolean flag = false;
-        for (String file : files) {
-            File f = join(COMMIT_DIR, file);
-            gitlet.Commit commitObj = readObject(f, gitlet.Commit.class);
-
-            if (commitObj.getMsg().equals(msg)) {
-                System.out.println(file);
-                flag = true;
-            }
-        }
-
-        if (!flag) {
-            System.out.println("Found no commit with that message.");
-        }
-
     }
 
     /** Display general into about the repository like branches, staged files,
